@@ -8,6 +8,14 @@ function App() {
   const [selectedGene, setSelectedGene] = useState("");
   const [heatmaps, setHeatmaps] = useState([]);
   const [showDescription, setShowDescription] = useState(false);
+  const [expanded, setExpanded] = useState({});
+
+  const toggleExpand = (tp) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [tp]: !prev[tp],
+    }));
+  };
 
   useEffect(() => {
     fetch("/data/test_data.json")
@@ -184,6 +192,14 @@ function App() {
     });
 
     setHeatmaps(newHeatmaps);
+
+    // Initialize expanded states to true
+    const initialExpanded = {};
+    newHeatmaps.forEach(hm => {
+      initialExpanded[hm.timepoint] = true;
+    });
+    setExpanded(initialExpanded);
+    
   }, [data, selectedGene]);
 
   return (
@@ -237,58 +253,68 @@ function App() {
 
       {heatmaps.map((hm) => (
         <div key={hm.timepoint} style={{ marginBottom: "10px" }}>
-          <h3 style={{ textAlign: "left" }}>Timepoint {hm.timepoint}</h3>
-          <Plot
-            data={[
-              {
-                z: hm.z,
-                x: hm.x,
-                y: hm.y,
-                text: hm.text,
-                type: "heatmap",
-                colorscale: [
-                  [0, "blue"],
-                  [0.5, "white"],
-                  [1, "red"],
-                ],
-                zmid: 0,
-                zmin: -hm.maxAbs,
-                zmax: hm.maxAbs,
-                xgap: 1,
-                ygap: 1,
-                hoverongaps: false,
-                colorbar: {
-                  title: "Expression",
-                  tickformat: ".1f",
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+            <h3 style={{ margin: 0, marginRight: "1rem" }}>
+              Timepoint {hm.timepoint}
+            </h3>
+            <button onClick={() => toggleExpand(hm.timepoint)}>
+              {expanded[hm.timepoint] ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          {expanded[hm.timepoint] !== false && (
+            <Plot
+              data={[
+                {
+                  z: hm.z,
+                  x: hm.x,
+                  y: hm.y,
+                  text: hm.text,
+                  type: "heatmap",
+                  colorscale: [
+                    [0, "blue"],
+                    [0.5, "white"],
+                    [1, "red"],
+                  ],
+                  zmid: 0,
+                  zmin: -hm.maxAbs,
+                  zmax: hm.maxAbs,
+                  xgap: 1,
+                  ygap: 1,
+                  hoverongaps: false,
+                  colorbar: {
+                    title: "Expression",
+                    tickformat: ".1f",
+                  },
+                  hovertemplate: "%{text}<extra></extra>",
                 },
-                hovertemplate: "%{text}<extra></extra>",
-              },
-            ]}
-            layout={{
-              title: "",
-              xaxis: {
-                title: "Clusters",
-                tickangle: 270,
-                tickmode: "array",
-                tickvals: hm.x.map((_, i) => i), // index-based ticks
-                ticktext: hm.x.map(label => {
-                  const match = label.match(/Cluster\s+\d+/);
-                  return match ? match[0] : label;
-                }),
-              },
-              yaxis: {
-                title: "Genotype",
-                automargin: true,
-                showline: false,
-                zeroline: false,
-                showgrid: false,
-              },
-              annotations: hm.annotations,
-              shapes: hm.shapes,
-              margin: { l: 100, b: 100, t: 40 },
-            }}
-            style={{ width: "100%", height: "230px" }}
-          />
+              ]}
+              layout={{
+                title: "",
+                xaxis: {
+                  title: "Clusters",
+                  tickangle: 270,
+                  tickmode: "array",
+                  tickvals: hm.x.map((_, i) => i),
+                  ticktext: hm.x.map((label) => {
+                    const match = label.match(/Cluster\s+(\d+)/);
+                    return match ? match[0] : label;
+                  }),
+                },
+                yaxis: {
+                  title: "Genotype",
+                  automargin: true,
+                  showline: false,
+                  zeroline: false,
+                  showgrid: false,
+                },
+                annotations: hm.annotations,
+                shapes: hm.shapes,
+                margin: { l: 100, b: 100, t: 40 },
+              }}
+              style={{ width: "100%", height: "230px" }}
+            />
+          )}
         </div>
       ))}
     </div>
