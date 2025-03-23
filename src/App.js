@@ -83,7 +83,7 @@ function App() {
 
         return {
           x: start + count / 2 - 0.5,
-          y: 1.05,
+          y: 1.1,
           text: displayText,
           hovertext: cellType,
           hoverinfo: "text",
@@ -118,9 +118,9 @@ function App() {
           xref: "x",
           yref: "paper",
           path: `
-            M ${start - 0.5},1.10
+            M ${start - 0.5},1.25
             H ${start + count - 0.5}
-            V 1.0
+            V 0.97
             H ${start - 0.5}
             Z
           `,
@@ -220,7 +220,7 @@ function App() {
       )}
 
       {heatmaps.map((hm) => (
-        <div key={hm.timepoint} style={{ marginBottom: "60px" }}>
+        <div key={hm.timepoint} style={{ marginBottom: "10px" }}>
           <h3 style={{ textAlign: "left" }}>Timepoint {hm.timepoint}</h3>
           <Plot
             data={[
@@ -244,6 +244,10 @@ function App() {
                   title: "Expression",
                   tickformat: ".1f",
                 },
+                hovertemplate: 
+                  "Cluster: %{x}<br>" +
+                  "Genotype: %{y}<br>" +
+                  "log2FC: %{z:.1f}<extra></extra>",
               },
             ]}
             layout={{
@@ -262,9 +266,9 @@ function App() {
               },
               annotations: hm.annotations,
               shapes: hm.shapes,
-              margin: { l: 100, b: 150, t: 100 },
+              margin: { l: 100, b: 100, t: 40 },
             }}
-            style={{ width: "100%", height: "auto", minHeight: "600px" }}
+            style={{ width: "100%", height: "230px" }}
           />
         </div>
       ))}
