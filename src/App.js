@@ -42,39 +42,43 @@ function App() {
       });
 
       const orderedCellTypes = Object.keys(cellClusterMap).sort();
-      const x = [];
+      const xMeta = []; // track full pair (cellType + cluster)
       const cellTypeBoundaries = [];
-
+      
       orderedCellTypes.forEach((cellType) => {
         const clusters = Array.from(cellClusterMap[cellType]).sort();
         cellTypeBoundaries.push({
           cellType,
-          start: x.length,
+          start: xMeta.length,
           count: clusters.length,
         });
-        clusters.forEach((cluster) => x.push(`${cluster}`));
+        clusters.forEach((cluster) => {
+          xMeta.push({ cellType, cluster });
+        });
       });
+      
+      const x = xMeta.map(({ cluster }) => cluster); // just cluster labels for axis
+      
 
       const z = genotypes.map((genotype) =>
-        x.map((cluster, i) => {
-          const cellType = orderedCellTypes.find((ct) =>
-            cellTypeBoundaries.some(
-              (b) => b.cellType === ct && i >= b.start && i < b.start + b.count
-            )
-          );
+        xMeta.map(({ cellType, cluster }) => {
           const val =
             rawSPD[genotype][selectedGene]["Cell type"]?.[cellType]?.[cluster];
           return val === "ns" || val === undefined ? 0 : val;
         })
       );
+      
 
-      const text = z.map((row, rowIndex) =>
-        row.map((val, colIndex) => {
-          const cluster = x[colIndex];
-          const genotype = genotypes[rowIndex];
-          return val === 0
-            ? `Cluster: ${cluster}<br>Genotype: ${genotype}<br>log2FC: Not Significant`
-            : `Cluster: ${cluster}<br>Genotype: ${genotype}<br>log2FC: ${val.toFixed(1)}`;
+      const text = genotypes.map((genotype, rowIndex) =>
+        xMeta.map(({ cluster }) => {
+          const clusterLabel = cluster.match(/Cluster\s+(\d+)/)?.[1] || cluster;
+          const val =
+            rawSPD[genotype][selectedGene]["Cell type"]?.[xMeta[rowIndex]?.cellType]?.[cluster];
+          const v = val === "ns" || val === undefined ? 0 : val;
+      
+          return v === 0
+            ? `Cluster: ${clusterLabel}<br>Genotype: ${genotype}<br>log2FC: Not Significant`
+            : `Cluster: ${clusterLabel}<br>Genotype: ${genotype}<br>log2FC: ${v.toFixed(1)}`;
         })
       );
       
@@ -265,7 +269,12 @@ function App() {
               xaxis: {
                 title: "Clusters",
                 tickangle: 270,
-                ticks: "",
+                tickmode: "array",
+                tickvals: hm.x.map((_, i) => i), // index-based ticks
+                ticktext: hm.x.map(label => {
+                  const match = label.match(/Cluster\s+\d+/);
+                  return match ? match[0] : label;
+                }),
               },
               yaxis: {
                 title: "Genotype",
