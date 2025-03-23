@@ -223,7 +223,7 @@ function App() {
             borderRadius: "6px",
             padding: "1rem",
             marginBottom: "1rem",
-            maxWidth: "800px",
+            maxWidth: "90%",
           }}
         >
           <strong>Description:</strong>{" "}
