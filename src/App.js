@@ -68,6 +68,17 @@ function App() {
         })
       );
 
+      const text = z.map((row, rowIndex) =>
+        row.map((val, colIndex) => {
+          const cluster = x[colIndex];
+          const genotype = genotypes[rowIndex];
+          return val === 0
+            ? `Cluster: ${cluster}<br>Genotype: ${genotype}<br>log2FC: Not Significant`
+            : `Cluster: ${cluster}<br>Genotype: ${genotype}<br>log2FC: ${val.toFixed(1)}`;
+        })
+      );
+      
+
       const flatZ = z.flat();
       const maxAbs = Math.max(...flatZ.map((val) => Math.abs(val)));
 
@@ -164,6 +175,7 @@ function App() {
         maxAbs,
         annotations,
         shapes,
+        text,
       });
     });
 
@@ -228,6 +240,7 @@ function App() {
                 z: hm.z,
                 x: hm.x,
                 y: hm.y,
+                text: hm.text,
                 type: "heatmap",
                 colorscale: [
                   [0, "blue"],
@@ -244,10 +257,7 @@ function App() {
                   title: "Expression",
                   tickformat: ".1f",
                 },
-                hovertemplate: 
-                  "Cluster: %{x}<br>" +
-                  "Genotype: %{y}<br>" +
-                  "log2FC: %{z:.1f}<extra></extra>",
+                hovertemplate: "%{text}<extra></extra>",
               },
             ]}
             layout={{
