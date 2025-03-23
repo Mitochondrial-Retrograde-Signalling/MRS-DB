@@ -15,16 +15,21 @@ function App() {
   const getGeneDescription = () => {
     if (!data || !selectedOrganelle || !selectedGene) return "";
   
-    // Try to get description from first available timepoint
     const firstTP = Object.keys(data).find((tp) =>
       data[tp]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]
     );
   
+    const geneInfo =
+      data?.[firstTP]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]?.["Gene Info"];
+  
+    if (!geneInfo) return "No gene info available.";
+  
     return (
-      data?.[firstTP]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]?.["Gene Info"]
-        ?.["Description"] || "No description available."
+      `<strong>Gene Name:</strong> ${geneInfo.Name}<br>` +
+      `<strong>Description:</strong> ${geneInfo.Description || "N/A"}`
     );
   };
+  
   
   useEffect(() => {
     if (!data || !selectedOrganelle) return;
@@ -270,24 +275,24 @@ function App() {
           disabled={!selectedGene}
           style={{ marginRight: "0.5rem" }}
         />
-        Show gene description
+        Show gene information
       </label>
     </div>
 
-      {showDescription && data && selectedGene && (
-        <div
-          style={{
-            background: "#f8f8f8",
-            border: "1px solid #ccc",
-            borderRadius: "6px",
-            padding: "1rem",
-            marginBottom: "1rem",
-            maxWidth: "90%",
-          }}
-        >
-          <strong>Description:</strong> {getGeneDescription()}
-        </div>
-      )}
+      {showDescription && selectedGene && (
+      <div
+        style={{
+          background: "#f8f8f8",
+          border: "1px solid #ccc",
+          borderRadius: "6px",
+          padding: "1rem",
+          marginBottom: "1rem",
+          maxWidth: "90%",
+        }}
+        dangerouslySetInnerHTML={{ __html: getGeneDescription() }}
+      />
+    )}
+
 
       {heatmaps.map((hm) => (
         <div key={hm.timepoint} style={{ marginBottom: "10px" }}>
