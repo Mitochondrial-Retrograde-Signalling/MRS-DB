@@ -9,7 +9,42 @@ function App() {
   const [heatmaps, setHeatmaps] = useState([]);
   const [showDescription, setShowDescription] = useState(false);
   const [expanded, setExpanded] = useState({});
+  const [selectedOrganelle, setSelectedOrganelle] = useState("");
+  const [organelleList, setOrganelleList] = useState([]);
 
+  const getGeneDescription = () => {
+    if (!data || !selectedOrganelle || !selectedGene) return "";
+  
+    // Try to get description from first available timepoint
+    const firstTP = Object.keys(data).find((tp) =>
+      data[tp]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]
+    );
+  
+    return (
+      data?.[firstTP]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]?.["Gene Info"]
+        ?.["Description"] || "No description available."
+    );
+  };
+  
+  useEffect(() => {
+    if (!data || !selectedOrganelle) return;
+  
+    // Collect unique genes across all timepoints for selected organelle
+    const genesSet = new Set();
+    Object.values(data).forEach((tpData) => {
+      const organelleData = tpData[selectedOrganelle];
+      if (organelleData?.["wild type"]) {
+        Object.keys(organelleData["wild type"]).forEach((gene) =>
+          genesSet.add(gene)
+        );
+      }
+    });
+  
+    const genes = Array.from(genesSet).sort();
+    setGeneList(genes);
+    setSelectedGene(genes[0] || "");
+  }, [data, selectedOrganelle]);
+  
   const toggleExpand = (tp) => {
     setExpanded((prev) => ({
       ...prev,
@@ -21,10 +56,10 @@ function App() {
     fetch("/data/test_data.json")
       .then((res) => res.json())
       .then((json) => {
-        const genes = Object.keys(json["3"]["SPD"]["wild type"]); // Assuming all genes are consistent
-        setGeneList(genes);
         setData(json);
-        setSelectedGene(genes[0]);
+        const firstTP = Object.keys(json)[0];
+        const organelles = Object.keys(json[firstTP]);
+        setOrganelleList(organelles);
       });
   }, []);
 
@@ -36,7 +71,7 @@ function App() {
     const newHeatmaps = [];
 
     timepoints.forEach((tp) => {
-      const rawSPD = data[tp]["SPD"];
+      const rawSPD = data[tp][selectedOrganelle];
       const cellClusterMap = {};
 
       genotypes.forEach((genotype) => {
@@ -206,30 +241,38 @@ function App() {
     <div style={{ padding: "1rem" }}>
       <h2>Gene Expression Heatmaps by Timepoint</h2>
 
+    <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
       <Select
-        options={geneList.map((gene) => ({ value: gene, label: gene }))}
-        value={{ value: selectedGene, label: selectedGene }}
-        onChange={(selected) => setSelectedGene(selected.value)}
-        isSearchable
-        placeholder="Search gene..."
-        styles={{
-          container: (base) => ({
-            ...base,
-            width: 300,
-            marginBottom: "1rem",
-          }),
-        }}
+        options={organelleList.map((org) => ({ value: org, label: org }))}
+        value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
+        onChange={(selected) => setSelectedOrganelle(selected.value)}
+        placeholder="Select organelle..."
+        styles={{ container: (base) => ({ ...base, width: 300 }) }}
       />
 
-      <label style={{ display: "block", marginBottom: "1rem" }}>
+      <Select
+        options={geneList.map((gene) => ({ value: gene, label: gene }))}
+        value={selectedGene ? { value: selectedGene, label: selectedGene } : null}
+        onChange={(selected) => setSelectedGene(selected.value)}
+        placeholder="Select gene..."
+        isDisabled={!selectedOrganelle}
+        isSearchable
+        styles={{ container: (base) => ({ ...base, width: 300 }) }}
+      />
+    {/* </div> */}
+
+
+      <label style={{ display: "block", marginBottom: "1rem", opacity: selectedGene ? 1 : 0.5 }}>
         <input
           type="checkbox"
           checked={showDescription}
           onChange={(e) => setShowDescription(e.target.checked)}
+          disabled={!selectedGene}
           style={{ marginRight: "0.5rem" }}
         />
         Show gene description
       </label>
+    </div>
 
       {showDescription && data && selectedGene && (
         <div
@@ -242,12 +285,7 @@ function App() {
             maxWidth: "90%",
           }}
         >
-          <strong>Description:</strong>{" "}
-          {
-            data["3"]["SPD"]["wild type"][selectedGene]["Gene Info"][
-              "Description"
-            ]
-          }
+          <strong>Description:</strong> {getGeneDescription()}
         </div>
       )}
 
