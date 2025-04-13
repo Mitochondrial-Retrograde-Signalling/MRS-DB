@@ -16,7 +16,7 @@ function App() {
   const [allGenesByOrganelle, setAllGenesByOrganelle] = useState({});
 
   useEffect(() => {
-    const files = ["1h.json", "2h.json"];
+    const files = ["1h.json", "3h.json", "6h.json"];
     Promise.all(files.map(f => fetch(`/data/processed/${f}`).then(res => res.json()))).then(jsons => {
       const newData = {};
       const organelles = new Set();
