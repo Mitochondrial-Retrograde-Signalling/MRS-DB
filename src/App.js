@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import Slider from 'rc-slider';
+import { Range } from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 function App() {
   const [data, setData] = useState({});
@@ -8,6 +11,7 @@ function App() {
   const [geneOptions, setGeneOptions] = useState([]);
   const [selectedGenes, setSelectedGenes] = useState([]);
   const [timepoints, setTimepoints] = useState([]);
+  const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
   const [allGenesByOrganelle, setAllGenesByOrganelle] = useState({});
   const [cellTypes, setCellTypes] = useState([]);
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
@@ -50,8 +54,13 @@ function App() {
         });
       });
 
+      const numericTPs = Object.keys(tpMap)
+        .map(tp => parseInt(tp))
+        .sort((a, b) => a - b);
+
       setData(newData);
-      setTimepoints(Object.keys(tpMap));
+      setTimepoints(numericTPs);
+      setSelectedTimepointRange([numericTPs[0], numericTPs[numericTPs.length - 1]]);
       setOrganelleOptions(Array.from(organelles).sort());
       setAllGenesByOrganelle(allGenesByOrg);
       setCellTypes(Array.from(allCellTypes).sort());
@@ -70,7 +79,7 @@ function App() {
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h2>Organelle, Gene, Cell Type & Genotype Selector</h2>
+      <h2>Organelle, Gene, Cell Type, Genotype & Timepoint Selector</h2>
 
       {/* Organelle Dropdown */}
       <Select
@@ -130,9 +139,7 @@ function App() {
         closeMenuOnSelect={false}
         hideSelectedOptions={false}
         isSearchable
-        styles={{
-          container: base => ({ ...base, width: 400, marginTop: "1rem", marginBottom: "1rem" }),
-        }}
+        styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
         components={{
           Option: ({ data, innerRef, innerProps, isSelected }) => {
             const isAll = data.value === "__ALL__";
@@ -152,12 +159,7 @@ function App() {
                   cursor: "pointer"
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  readOnly
-                  style={{ marginRight: "0.5rem" }}
-                />
+                <input type="checkbox" checked={isChecked} readOnly style={{ marginRight: "0.5rem" }} />
                 {data.label}
               </div>
             );
@@ -194,9 +196,7 @@ function App() {
         closeMenuOnSelect={false}
         hideSelectedOptions={false}
         isSearchable
-        styles={{
-          container: base => ({ ...base, width: 400, marginTop: "1rem", marginBottom: "1rem" }),
-        }}
+        styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
         components={{
           Option: ({ data, innerRef, innerProps, isSelected }) => {
             const isAll = data.value === "__ALL__";
@@ -216,18 +216,43 @@ function App() {
                   cursor: "pointer"
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  readOnly
-                  style={{ marginRight: "0.5rem" }}
-                />
+                <input type="checkbox" checked={isChecked} readOnly style={{ marginRight: "0.5rem" }} />
                 {data.label}
               </div>
             );
           }
         }}
       />
+
+      {/* Timepoint Range Slider */}
+      {timepoints.length > 1 && (
+        <div style={{ marginTop: "2rem", width: 500 }}>
+          <strong>Timepoint</strong>
+          <Slider
+            range
+            min={timepoints[0]}
+            max={timepoints[timepoints.length - 1]}
+            value={selectedTimepointRange}
+            onChange={(range) => {
+              setSelectedTimepointRange(range);
+              console.log("Selected Timepoint Range:", range);
+            }}
+            marks={timepoints.reduce((acc, tp) => {
+              acc[tp] = tp.toString();
+              return acc;
+            }, {})}
+            step={null}
+            allowCross={false}
+            trackStyle={[{ backgroundColor: "#37474f" }]}
+            handleStyle={[
+              { borderColor: "#37474f", backgroundColor: "white" },
+              { borderColor: "#37474f", backgroundColor: "white" }
+            ]}
+            railStyle={{ backgroundColor: "#cfd8dc" }}
+          />
+
+        </div>
+      )}
     </div>
   );
 }
