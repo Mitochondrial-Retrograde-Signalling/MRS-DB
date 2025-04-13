@@ -10,9 +10,9 @@ function App() {
   const [timepoints, setTimepoints] = useState([]);
   const [allGenesByOrganelle, setAllGenesByOrganelle] = useState({});
   const [cellTypes, setCellTypes] = useState([]);
+  const [selectedCellTypes, setSelectedCellTypes] = useState([]);
   const [genotypes, setGenotypes] = useState([]);
 
-  // Load and process JSON files
   useEffect(() => {
     const files = ["1h.json", "3h.json", "6h.json"];
     Promise.all(
@@ -58,19 +58,28 @@ function App() {
     });
   }, []);
 
-  // Update gene options when organelle changes
   useEffect(() => {
     if (selectedOrganelle && allGenesByOrganelle[selectedOrganelle]) {
       const genes = Array.from(allGenesByOrganelle[selectedOrganelle]).sort();
       setGeneOptions(genes);
-      setSelectedGenes([]); // Reset on organelle change
+      setSelectedGenes([]);
       console.log("Available genes for", selectedOrganelle, ":", genes);
     }
   }, [selectedOrganelle, allGenesByOrganelle]);
 
+  const toggleCellType = (cellType) => {
+    setSelectedCellTypes(prev => {
+      const newSelected = prev.includes(cellType)
+        ? prev.filter(c => c !== cellType)
+        : [...prev, cellType];
+      console.log("Selected Cell Types:", newSelected);
+      return newSelected;
+    });
+  };
+
   return (
     <div style={{ padding: "1rem" }}>
-      <h2>Organelle & Gene Selector</h2>
+      <h2>Organelle, Gene & Cell Type Selector</h2>
 
       {/* Organelle Dropdown */}
       <Select
@@ -101,17 +110,78 @@ function App() {
         styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
       />
 
-      {/* Display Selections */}
-      {selectedOrganelle && (
-        <p>
-          <strong>Selected Organelle:</strong> {selectedOrganelle}
-        </p>
-      )}
-      {selectedGenes.length > 0 && (
-        <p>
-          <strong>Selected Genes:</strong> {selectedGenes.join(", ")}
-        </p>
-      )}
+      {/* Cell Type Checkboxes */}
+      <Select
+        isMulti
+        options={[
+          { value: "__ALL__", label: "All" },
+          ...cellTypes.map(ct => ({ value: ct, label: ct }))
+        ]}
+        value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
+        onChange={(selectedOptions) => {
+          if (!selectedOptions) {
+            setSelectedCellTypes([]);
+            console.log("Selected Cell Types: []");
+            return;
+          }
+
+          const values = selectedOptions.map(o => o.value);
+
+          if (values.includes("__ALL__")) {
+            // Toggle behavior
+            if (selectedCellTypes.length === cellTypes.length) {
+              setSelectedCellTypes([]);
+              console.log("Deselected all Cell Types");
+            } else {
+              setSelectedCellTypes(cellTypes);
+              console.log("Selected all Cell Types:", cellTypes);
+            }
+          } else {
+            setSelectedCellTypes(values);
+            console.log("Selected Cell Types:", values);
+          }
+        }}
+        placeholder="Select cell types"
+        closeMenuOnSelect={false}
+        hideSelectedOptions={false}
+        isSearchable
+        styles={{
+          container: base => ({ ...base, width: 400, marginTop: "1rem", marginBottom: "1rem" }),
+        }}
+        components={{
+          Option: ({ data, innerRef, innerProps, isSelected }) => {
+            const isAll = data.value === "__ALL__";
+            const isChecked = isAll
+              ? selectedCellTypes.length === cellTypes.length
+              : isSelected;
+
+            return (
+              <div
+                ref={innerRef}
+                {...innerProps}
+                style={{
+                  padding: "0.5rem 1rem",
+                  backgroundColor: innerProps.isFocused ? "#f1f1f1" : "white",
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer"
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  readOnly
+                  style={{ marginRight: "0.5rem" }}
+                />
+                {data.label}
+              </div>
+            );
+          }
+        }}
+      />
+
+
+
     </div>
   );
 }
