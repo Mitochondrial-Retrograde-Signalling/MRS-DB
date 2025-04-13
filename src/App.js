@@ -3,365 +3,255 @@ import Plot from "react-plotly.js";
 import Select from "react-select";
 
 function App() {
-  const [data, setData] = useState(null);
-  const [geneList, setGeneList] = useState([]);
-  const [selectedGene, setSelectedGene] = useState("");
-  const [heatmaps, setHeatmaps] = useState([]);
-  const [showDescription, setShowDescription] = useState(false);
-  const [expanded, setExpanded] = useState({});
-  const [selectedOrganelle, setSelectedOrganelle] = useState("");
-  const [organelleList, setOrganelleList] = useState([]);
-
-  const getGeneDescription = () => {
-    if (!data || !selectedOrganelle || !selectedGene) return "";
-  
-    const firstTP = Object.keys(data).find((tp) =>
-      data[tp]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]
-    );
-  
-    const geneInfo =
-      data?.[firstTP]?.[selectedOrganelle]?.["wild type"]?.[selectedGene]?.["Gene Info"];
-  
-    if (!geneInfo) return "No gene info available.";
-  
-    return (
-      `<strong>Gene Name:</strong> ${geneInfo.Name}<br>` +
-      `<strong>Description:</strong> ${geneInfo.Description || "N/A"}`
-    );
-  };
-  
-  
-  useEffect(() => {
-    if (!data || !selectedOrganelle) return;
-  
-    // Collect unique genes across all timepoints for selected organelle
-    const genesSet = new Set();
-    Object.values(data).forEach((tpData) => {
-      const organelleData = tpData[selectedOrganelle];
-      if (organelleData?.["wild type"]) {
-        Object.keys(organelleData["wild type"]).forEach((gene) =>
-          genesSet.add(gene)
-        );
-      }
-    });
-  
-    const genes = Array.from(genesSet).sort();
-    setGeneList(genes);
-    setSelectedGene(genes[0] || "");
-  }, [data, selectedOrganelle]);
-  
-  const toggleExpand = (tp) => {
-    setExpanded((prev) => ({
-      ...prev,
-      [tp]: !prev[tp],
-    }));
-  };
+  const [data, setData] = useState({});
+  const [organelleOptions, setOrganelleOptions] = useState([]);
+  const [selectedOrganelle, setSelectedOrganelle] = useState(null);
+  const [geneOptions, setGeneOptions] = useState([]);
+  const [selectedGenes, setSelectedGenes] = useState([]);
+  const [timepoints, setTimepoints] = useState([]); // activate later
+  const [selectedTimepoints, setSelectedTimepoints] = useState([]);
+  const [visibleTimepoints, setVisibleTimepoints] = useState({});
+  const [cellTypes, setCellTypes] = useState([]); // activate later
+  const [genotypes, setGenotypes] = useState([]); // activate later
+  const [allGenesByOrganelle, setAllGenesByOrganelle] = useState({});
 
   useEffect(() => {
-    fetch("/data/test_data.json")
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
-        const firstTP = Object.keys(json)[0];
-        const organelles = Object.keys(json[firstTP]);
-        setOrganelleList(organelles);
+    const files = ["1h.json", "2h.json"];
+    Promise.all(files.map(f => fetch(`/data/processed/${f}`).then(res => res.json()))).then(jsons => {
+      const newData = {};
+      const organelles = new Set();
+      const allGenesByOrg = {};
+      const allCellTypes = new Set();
+      const allGenotypes = new Set();
+      const tpMap = {};
+
+      files.forEach((file, i) => {
+        const tp = file.replace(".json", "");
+        tpMap[tp] = true;
+        newData[tp] = jsons[i];
+
+        Object.entries(jsons[i]).forEach(([organelle, genes]) => {
+          organelles.add(organelle);
+          if (!allGenesByOrg[organelle]) allGenesByOrg[organelle] = new Set();
+
+          Object.entries(genes).forEach(([gene, geneData]) => {
+            allGenesByOrg[organelle].add(gene);
+            Object.entries(geneData).forEach(([genotype, cellMap]) => {
+              if (genotype === "Details") return;
+              allGenotypes.add(genotype);
+              Object.keys(cellMap).forEach(cellType => {
+                allCellTypes.add(cellType);
+              });
+            });
+          });
+        });
       });
+
+      setData(newData);
+      setTimepoints(Object.keys(tpMap));
+      setSelectedTimepoints(Object.keys(tpMap));
+      setOrganelleOptions(Array.from(organelles).sort());
+      setAllGenesByOrganelle(allGenesByOrg);
+      setCellTypes(Array.from(allCellTypes).sort());
+      setGenotypes(Array.from(allGenotypes).sort());
+
+      const vis = {};
+      Object.keys(tpMap).forEach(tp => vis[tp] = true);
+      setVisibleTimepoints(vis);
+    });
   }, []);
 
   useEffect(() => {
-    if (!data || !selectedGene) return;
+    if (selectedOrganelle && allGenesByOrganelle[selectedOrganelle]) {
+      const genes = Array.from(allGenesByOrganelle[selectedOrganelle]).sort();
+      setGeneOptions(genes);
+      setSelectedGenes([]);
+      console.log("These are the list of genes from the selected Organelle", genes)
+    }
+  }, [selectedOrganelle, allGenesByOrganelle]);
 
-    const genotypes = ["wild type", "mutant"];
-    const timepoints = Object.keys(data);
-    const newHeatmaps = [];
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
+    if (selectedOrganelle) params.set("organelle", selectedOrganelle);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
 
-    timepoints.forEach((tp) => {
-      const rawSPD = data[tp][selectedOrganelle];
-      const cellClusterMap = {};
+    console.log(`${window.location.pathname}?${params.toString()}`)
+  }, [selectedGenes, selectedOrganelle]);
 
-      genotypes.forEach((genotype) => {
-        const geneData = rawSPD[genotype][selectedGene]["Cell type"];
-        Object.entries(geneData).forEach(([cellType, clusters]) => {
-          if (!cellClusterMap[cellType]) cellClusterMap[cellType] = new Set();
-          Object.keys(clusters).forEach((cluster) =>
-            cellClusterMap[cellType].add(cluster)
-          );
-        });
-      });
-
-      const orderedCellTypes = Object.keys(cellClusterMap).sort();
-      const xMeta = []; // track full pair (cellType + cluster)
-      const cellTypeBoundaries = [];
-      
-      orderedCellTypes.forEach((cellType) => {
-        const clusters = Array.from(cellClusterMap[cellType]).sort();
-        cellTypeBoundaries.push({
-          cellType,
-          start: xMeta.length,
-          count: clusters.length,
-        });
-        clusters.forEach((cluster) => {
-          xMeta.push({ cellType, cluster });
-        });
-      });
-      
-      const x = xMeta.map(({ cluster }) => cluster); // just cluster labels for axis
-      
-
-      const z = genotypes.map((genotype) =>
-        xMeta.map(({ cellType, cluster }) => {
-          const val =
-            rawSPD[genotype][selectedGene]["Cell type"]?.[cellType]?.[cluster];
-          return val === "ns" || val === undefined ? 0 : val;
-        })
-      );
-      
-
-      const text = genotypes.map((genotype, rowIndex) =>
-        xMeta.map(({ cluster }) => {
-          const clusterLabel = cluster.match(/Cluster\s+(\d+)/)?.[1] || cluster;
-          const val =
-            rawSPD[genotype][selectedGene]["Cell type"]?.[xMeta[rowIndex]?.cellType]?.[cluster];
-          const v = val === "ns" || val === undefined ? 0 : val;
-      
-          return v === 0
-            ? `Cluster: ${clusterLabel}<br>Genotype: ${genotype}<br>log2FC: Not Significant`
-            : `Cluster: ${clusterLabel}<br>Genotype: ${genotype}<br>log2FC: ${v.toFixed(1)}`;
-        })
-      );
-      
-
-      const flatZ = z.flat();
-      const maxAbs = Math.max(...flatZ.map((val) => Math.abs(val)));
-
-      const annotations = cellTypeBoundaries.map(({ cellType, start, count }) => {
-        const clusterWidthPx = 40;
-        const boxWidthPx = count * clusterWidthPx;
-        const textPx = cellType.length * 7;
-        const needsShortening = textPx > boxWidthPx;
-        const displayText = needsShortening
-          ? cellType.slice(0, Math.floor(boxWidthPx / 7) - 3) + "…"
-          : cellType;
-        const fontSize = needsShortening ? 10 : 12;
-
-        return {
-          x: start + count / 2 - 0.5,
-          y: 1.1,
-          text: displayText,
-          hovertext: cellType,
-          hoverinfo: "text",
-          showarrow: false,
-          xref: "x",
-          yref: "paper",
-          font: {
-            size: fontSize,
-            color: "black",
-          },
-          xanchor: "center",
-          yanchor: "middle",
-        };
-      });
-
-      const shapes = [];
-
-      cellTypeBoundaries.forEach(({ start, count }, idx) => {
-        if (idx > 0) {
-          shapes.push({
-            type: "line",
-            x0: start - 0.5,
-            x1: start - 0.5,
-            y0: -0.5,
-            y1: 1.5,
-            line: { color: "black", width: 2 },
-          });
-        }
-
-        shapes.push({
-          type: "path",
-          xref: "x",
-          yref: "paper",
-          path: `
-            M ${start - 0.5},1.25
-            H ${start + count - 0.5}
-            V 0.97
-            H ${start - 0.5}
-            Z
-          `,
-          fillcolor: "#e6e6e6",
-          line: {
-            color: "black",
-            width: 2,
-          },
-        });
-      });
-
-      // Add vertical bounding lines
-      shapes.push(
-        {
-          type: "line",
-          xref: "x",
-          yref: "y",
-          x0: -0.5,
-          x1: -0.5,
-          y0: -0.5,
-          y1: 1.5,
-          line: { color: "black", width: 2 },
-        },
-        {
-          type: "line",
-          xref: "x",
-          yref: "y",
-          x0: x.length - 0.5,
-          x1: x.length - 0.5,
-          y0: -0.5,
-          y1: 1.5,
-          line: { color: "black", width: 2 },
-        }
-      );
-
-      newHeatmaps.push({
-        timepoint: tp,
-        x,
-        y: ["Wild Type", "Mutant"],
-        z,
-        maxAbs,
-        annotations,
-        shapes,
-        text,
-      });
-    });
-
-    setHeatmaps(newHeatmaps);
-
-    // Initialize expanded states to true
-    const initialExpanded = {};
-    newHeatmaps.forEach(hm => {
-      initialExpanded[hm.timepoint] = true;
-    });
-    setExpanded(initialExpanded);
-    
-  }, [data, selectedGene]);
+  const toggleTimepoint = (tp) => {
+    setVisibleTimepoints(prev => ({ ...prev, [tp]: !prev[tp] }));
+  };
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h2>Gene Expression Heatmaps by Timepoint</h2>
+      <h2>Gene Expression Heatmap Viewer</h2>
 
-    <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-      <Select
-        options={organelleList.map((org) => ({ value: org, label: org }))}
-        value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
-        onChange={(selected) => setSelectedOrganelle(selected.value)}
-        placeholder="Select organelle..."
-        styles={{ container: (base) => ({ ...base, width: 300 }) }}
-      />
-
-      <Select
-        options={geneList.map((gene) => ({ value: gene, label: gene }))}
-        value={selectedGene ? { value: selectedGene, label: selectedGene } : null}
-        onChange={(selected) => setSelectedGene(selected.value)}
-        placeholder="Select gene..."
-        isDisabled={!selectedOrganelle}
-        isSearchable
-        styles={{ container: (base) => ({ ...base, width: 300 }) }}
-      />
-    {/* </div> */}
-
-
-      <label style={{ display: "block", marginBottom: "1rem", opacity: selectedGene ? 1 : 0.5 }}>
-        <input
-          type="checkbox"
-          checked={showDescription}
-          onChange={(e) => setShowDescription(e.target.checked)}
-          disabled={!selectedGene}
-          style={{ marginRight: "0.5rem" }}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+        <Select
+          options={organelleOptions.map(o => ({ value: o, label: o }))}
+          value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
+          onChange={opt => setSelectedOrganelle(opt?.value || null)}
+          placeholder="Select organelle"
+          styles={{ container: base => ({ ...base, width: 250 }) }}
         />
-        Show gene information
-      </label>
-    </div>
 
-      {showDescription && selectedGene && (
-      <div
-        style={{
-          background: "#f8f8f8",
-          border: "1px solid #ccc",
-          borderRadius: "6px",
-          padding: "1rem",
-          marginBottom: "1rem",
-          maxWidth: "90%",
-        }}
-        dangerouslySetInnerHTML={{ __html: getGeneDescription() }}
-      />
-    )}
+        <Select
+          isMulti
+          options={geneOptions.map(g => ({ value: g, label: g }))}
+          value={selectedGenes.map(g => ({ value: g, label: g }))}
+          onChange={opts => setSelectedGenes(opts.map(o => o.value))}
+          placeholder="Select genes"
+          styles={{ container: base => ({ ...base, width: 300 }) }}
+          isSearchable
+          isDisabled={!selectedOrganelle}
+        />
+      </div>
 
-
-      {heatmaps.map((hm) => (
-        <div key={hm.timepoint} style={{ marginBottom: "10px" }}>
+      {selectedTimepoints.map(tp => (
+        <div key={tp} style={{ marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
-            <h3 style={{ margin: 0, marginRight: "1rem" }}>
-              Timepoint {hm.timepoint}
-            </h3>
-            <button onClick={() => toggleExpand(hm.timepoint)}>
-              {expanded[hm.timepoint] ? "Hide" : "Show"}
+            <h3 style={{ marginRight: "1rem" }}>{tp}</h3>
+            <button onClick={() => toggleTimepoint(tp)}>
+              {visibleTimepoints[tp] ? "Hide" : "Show"}
             </button>
           </div>
 
-          {expanded[hm.timepoint] !== false && (
-            <Plot
-              data={[
-                {
-                  z: hm.z,
-                  x: hm.x,
-                  y: hm.y,
-                  text: hm.text,
-                  type: "heatmap",
-                  colorscale: [
-                    [0, "blue"],
-                    [0.5, "white"],
-                    [1, "red"],
-                  ],
-                  zmid: 0,
-                  zmin: -hm.maxAbs,
-                  zmax: hm.maxAbs,
-                  xgap: 1,
-                  ygap: 1,
-                  hoverongaps: false,
-                  colorbar: {
-                    title: "Expression",
-                    tickformat: ".1f",
-                  },
-                  hovertemplate: "%{text}<extra></extra>",
-                },
-              ]}
-              layout={{
-                title: "",
-                xaxis: {
-                  title: "Clusters",
-                  tickangle: 270,
-                  tickmode: "array",
-                  tickvals: hm.x.map((_, i) => i),
-                  ticktext: hm.x.map((label) => {
-                    const match = label.match(/Cluster\s+(\d+)/);
-                    return match ? match[0] : label;
-                  }),
-                },
-                yaxis: {
-                  title: "Genotype",
-                  automargin: true,
-                  showline: false,
-                  zeroline: false,
-                  showgrid: false,
-                },
-                annotations: hm.annotations,
-                shapes: hm.shapes,
-                margin: { l: 100, b: 100, t: 40 },
-              }}
-              style={{ width: "100%", height: "230px" }}
+          {visibleTimepoints[tp] && selectedOrganelle && selectedGenes.length > 0 && (
+            <PlotWrapper
+              tp={tp}
+              data={data}
+              selectedOrganelle={selectedOrganelle}
+              selectedGenes={selectedGenes}
             />
           )}
         </div>
       ))}
+
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        style={{
+          position: "fixed",
+          bottom: "1rem",
+          right: "1rem",
+          padding: "0.5rem 1rem",
+          backgroundColor: "#1976d2",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          zIndex: 1000
+        }}
+      >
+        ↑ Top
+      </button>
     </div>
   );
 }
+
+const PlotWrapper = ({ tp, data, selectedOrganelle, selectedGenes }) => {
+  const organelleData = data[tp]?.[selectedOrganelle];
+  if (!organelleData) return null;
+
+  const xMetaSet = new Set();
+  selectedGenes.forEach(gene => {
+    const geneData = organelleData[gene];
+    if (!geneData) return;
+    Object.entries(geneData).forEach(([genotype, cellMap]) => {
+      if (genotype === "Details") return;
+      Object.entries(cellMap || {}).forEach(([cellType, clusters]) => {
+        Object.keys(clusters || {}).forEach(cluster => {
+          xMetaSet.add(`${cellType}||${cluster}`);
+        });
+      });
+    });
+  });
+
+  const xMeta = Array.from(xMetaSet).sort();
+  const xLabels = xMeta.map(k => {
+    const [ct, cl] = k.split("||");
+    return `${ct}<br>${cl.replace("log2FC_", "")}`;
+  });
+
+  const yLabels = [];
+  const zData = [];
+  const maskData = [];
+
+  selectedGenes.forEach(gene => {
+    const geneData = organelleData[gene];
+    if (!geneData) return;
+
+    Object.entries(geneData).forEach(([genotype, cellMap]) => {
+      if (genotype === "Details") return;
+
+      const yLabel = `${gene} / ${genotype}`;
+      yLabels.push(yLabel);
+
+      const zRow = [];
+      const maskRow = [];
+
+      xMeta.forEach(key => {
+        const [cellType, cluster] = key.split("||");
+        const val = geneData[genotype]?.[cellType]?.[cluster];
+
+        if (val === "ns") {
+          zRow.push(null);
+          maskRow.push(1);
+        } else {
+          zRow.push(val ?? null);
+          maskRow.push(0);
+        }
+      });
+
+      zData.push(zRow);
+      maskData.push(maskRow);
+    });
+  });
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <Plot
+        data={[
+          {
+            z: zData,
+            x: xLabels.map((_, i) => i),
+            y: yLabels,
+            type: "heatmap",
+            colorscale: "RdBu",
+            zmid: 0,
+            hoverongaps: false,
+            hovertemplate: "%{y}<br>%{x}: %{z}<extra></extra>",
+          },
+          {
+            z: maskData,
+            x: xLabels.map((_, i) => i),
+            y: yLabels,
+            type: "heatmap",
+            colorscale: [[0, "rgba(0,0,0,0)"], [1, "lightgray"]],
+            showscale: false,
+            hoverinfo: "skip",
+            opacity: 1
+          }
+        ]}
+        layout={{
+          title: `${selectedOrganelle} - ${tp}`,
+          margin: { l: 180, r: 30, t: 40, b: 120 },
+          yaxis: { automargin: true },
+          xaxis: {
+            tickangle: -45,
+            tickvals: xLabels.map((_, i) => i),
+            ticktext: xLabels,
+            automargin: true
+          },
+          autosize: true,
+          responsive: true
+        }}
+        config={{ responsive: true }}
+        style={{ width: "100%", height: yLabels.length * 55 + 120 }}
+      />
+    </div>
+  );
+};
+
 
 export default App;
