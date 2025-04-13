@@ -12,6 +12,7 @@ function App() {
   const [cellTypes, setCellTypes] = useState([]);
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
   const [genotypes, setGenotypes] = useState([]);
+  const [selectedGenotypes, setSelectedGenotypes] = useState([]);
 
   useEffect(() => {
     const files = ["1h.json", "3h.json", "6h.json"];
@@ -67,19 +68,9 @@ function App() {
     }
   }, [selectedOrganelle, allGenesByOrganelle]);
 
-  const toggleCellType = (cellType) => {
-    setSelectedCellTypes(prev => {
-      const newSelected = prev.includes(cellType)
-        ? prev.filter(c => c !== cellType)
-        : [...prev, cellType];
-      console.log("Selected Cell Types:", newSelected);
-      return newSelected;
-    });
-  };
-
   return (
     <div style={{ padding: "1rem" }}>
-      <h2>Organelle, Gene & Cell Type Selector</h2>
+      <h2>Organelle, Gene, Cell Type & Genotype Selector</h2>
 
       {/* Organelle Dropdown */}
       <Select
@@ -110,13 +101,10 @@ function App() {
         styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
       />
 
-      {/* Cell Type Checkboxes */}
+      {/* Cell Type Selector */}
       <Select
         isMulti
-        options={[
-          { value: "__ALL__", label: "All" },
-          ...cellTypes.map(ct => ({ value: ct, label: ct }))
-        ]}
+        options={[{ value: "__ALL__", label: "All" }, ...cellTypes.map(ct => ({ value: ct, label: ct }))]}
         value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
         onChange={(selectedOptions) => {
           if (!selectedOptions) {
@@ -124,11 +112,8 @@ function App() {
             console.log("Selected Cell Types: []");
             return;
           }
-
           const values = selectedOptions.map(o => o.value);
-
           if (values.includes("__ALL__")) {
-            // Toggle behavior
             if (selectedCellTypes.length === cellTypes.length) {
               setSelectedCellTypes([]);
               console.log("Deselected all Cell Types");
@@ -180,8 +165,69 @@ function App() {
         }}
       />
 
+      {/* Genotype Selector */}
+      <Select
+        isMulti
+        options={[{ value: "__ALL__", label: "All" }, ...genotypes.map(g => ({ value: g, label: g }))]}
+        value={selectedGenotypes.map(g => ({ value: g, label: g }))}
+        onChange={(selectedOptions) => {
+          if (!selectedOptions) {
+            setSelectedGenotypes([]);
+            console.log("Selected Genotypes: []");
+            return;
+          }
+          const values = selectedOptions.map(o => o.value);
+          if (values.includes("__ALL__")) {
+            if (selectedGenotypes.length === genotypes.length) {
+              setSelectedGenotypes([]);
+              console.log("Deselected all Genotypes");
+            } else {
+              setSelectedGenotypes(genotypes);
+              console.log("Selected all Genotypes:", genotypes);
+            }
+          } else {
+            setSelectedGenotypes(values);
+            console.log("Selected Genotypes:", values);
+          }
+        }}
+        placeholder="Select genotypes"
+        closeMenuOnSelect={false}
+        hideSelectedOptions={false}
+        isSearchable
+        styles={{
+          container: base => ({ ...base, width: 400, marginTop: "1rem", marginBottom: "1rem" }),
+        }}
+        components={{
+          Option: ({ data, innerRef, innerProps, isSelected }) => {
+            const isAll = data.value === "__ALL__";
+            const isChecked = isAll
+              ? selectedGenotypes.length === genotypes.length
+              : isSelected;
 
-
+            return (
+              <div
+                ref={innerRef}
+                {...innerProps}
+                style={{
+                  padding: "0.5rem 1rem",
+                  backgroundColor: innerProps.isFocused ? "#f1f1f1" : "white",
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer"
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  readOnly
+                  style={{ marginRight: "0.5rem" }}
+                />
+                {data.label}
+              </div>
+            );
+          }
+        }}
+      />
     </div>
   );
 }
