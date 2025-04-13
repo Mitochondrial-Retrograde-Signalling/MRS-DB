@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
-import { Range } from 'rc-slider';
 import 'rc-slider/assets/index.css';
 
 function App() {
@@ -42,7 +42,6 @@ function App() {
 
           Object.entries(genes).forEach(([gene, geneData]) => {
             allGenesByOrg[organelle].add(gene);
-
             Object.entries(geneData).forEach(([genotype, cellMap]) => {
               if (genotype === "Details") return;
               allGenotypes.add(genotype);
@@ -77,6 +76,109 @@ function App() {
     }
   }, [selectedOrganelle, allGenesByOrganelle]);
 
+  const renderPlot = (tp) => {
+    const tpKey = `${tp}h`;
+    const organelleData = data[tpKey]?.[selectedOrganelle];
+    if (!organelleData) return null;
+
+    const xMetaSet = new Set();
+    selectedGenes.forEach(gene => {
+      const geneData = organelleData[gene];
+      if (!geneData) return;
+      selectedGenotypes.forEach(genotype => {
+        const cellMap = geneData[genotype] || {};
+        selectedCellTypes.forEach(cellType => {
+          const clusters = cellMap[cellType] || {};
+          Object.keys(clusters).forEach(cluster => {
+            if (cluster.startsWith("log2FC")) {
+              xMetaSet.add(`${cellType}||${cluster}`);
+            }
+          });
+        });
+      });
+    });
+
+    const xMeta = Array.from(xMetaSet).sort();
+    const xLabels = xMeta.map(k => {
+      const [ct, cl] = k.split("||");
+      return `${ct}<br>${cl.replace("log2FC_", "")}`;
+    });
+
+    const yLabels = [];
+    const zData = [];
+    const maskData = [];
+
+    selectedGenes.forEach(gene => {
+      selectedGenotypes.forEach(genotype => {
+        const yLabel = `${gene} / ${genotype}`;
+        yLabels.push(yLabel);
+
+        const zRow = [];
+        const maskRow = [];
+
+        xMeta.forEach(key => {
+          const [cellType, cluster] = key.split("||");
+          const val = organelleData[gene]?.[genotype]?.[cellType]?.[cluster];
+
+          if (val === "ns" || val === undefined) {
+            zRow.push(null);
+            maskRow.push(1);
+          } else {
+            zRow.push(parseFloat(val));
+            maskRow.push(0);
+          }
+        });
+
+        zData.push(zRow);
+        maskData.push(maskRow);
+      });
+    });
+
+    return (
+      <div key={tpKey} style={{ marginBottom: "3rem" }}>
+        <h3>{tpKey}</h3>
+        <Plot
+          data={[
+            {
+              z: zData,
+              x: xLabels.map((_, i) => i),
+              y: yLabels,
+              type: "heatmap",
+              colorscale: "RdBu",
+              zmid: 0,
+              hoverongaps: false,
+              hovertemplate: "%{y}<br>%{x}: %{z}<extra></extra>"
+            },
+            {
+              z: maskData,
+              x: xLabels.map((_, i) => i),
+              y: yLabels,
+              type: "heatmap",
+              colorscale: [[0, "rgba(0,0,0,0)"], [1, "lightgray"]],
+              showscale: false,
+              hoverinfo: "skip",
+              opacity: 1
+            }
+          ]}
+          layout={{
+            margin: { l: 180, r: 30, t: 40, b: 120 },
+            yaxis: { automargin: true },
+            xaxis: {
+              tickangle: -45,
+              tickvals: xLabels.map((_, i) => i),
+              ticktext: xLabels,
+              automargin: true
+            },
+            autosize: true,
+            responsive: true
+          }}
+          config={{ responsive: true }}
+          style={{ width: "100%", height: yLabels.length * 55 + 120 }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div style={{ padding: "1rem" }}>
       <h2>Organelle, Gene, Cell Type, Genotype & Timepoint Selector</h2>
@@ -110,26 +212,17 @@ function App() {
         styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
       />
 
-      {/* Cell Type Selector */}
+      {/* Cell Type Multi-Select */}
       <Select
         isMulti
         options={[{ value: "__ALL__", label: "All" }, ...cellTypes.map(ct => ({ value: ct, label: ct }))]}
         value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
         onChange={(selectedOptions) => {
-          if (!selectedOptions) {
-            setSelectedCellTypes([]);
-            console.log("Selected Cell Types: []");
-            return;
-          }
-          const values = selectedOptions.map(o => o.value);
+          const values = (selectedOptions || []).map(o => o.value);
           if (values.includes("__ALL__")) {
-            if (selectedCellTypes.length === cellTypes.length) {
-              setSelectedCellTypes([]);
-              console.log("Deselected all Cell Types");
-            } else {
-              setSelectedCellTypes(cellTypes);
-              console.log("Selected all Cell Types:", cellTypes);
-            }
+            const all = selectedCellTypes.length === cellTypes.length ? [] : cellTypes;
+            setSelectedCellTypes(all);
+            console.log("Selected Cell Types:", all);
           } else {
             setSelectedCellTypes(values);
             console.log("Selected Cell Types:", values);
@@ -137,7 +230,6 @@ function App() {
         }}
         placeholder="Select cell types"
         closeMenuOnSelect={false}
-        hideSelectedOptions={false}
         isSearchable
         styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
         components={{
@@ -146,19 +238,8 @@ function App() {
             const isChecked = isAll
               ? selectedCellTypes.length === cellTypes.length
               : isSelected;
-
             return (
-              <div
-                ref={innerRef}
-                {...innerProps}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: innerProps.isFocused ? "#f1f1f1" : "white",
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer"
-                }}
-              >
+              <div ref={innerRef} {...innerProps} style={{ padding: "0.5rem 1rem", display: "flex", alignItems: "center" }}>
                 <input type="checkbox" checked={isChecked} readOnly style={{ marginRight: "0.5rem" }} />
                 {data.label}
               </div>
@@ -167,26 +248,17 @@ function App() {
         }}
       />
 
-      {/* Genotype Selector */}
+      {/* Genotype Multi-Select */}
       <Select
         isMulti
         options={[{ value: "__ALL__", label: "All" }, ...genotypes.map(g => ({ value: g, label: g }))]}
         value={selectedGenotypes.map(g => ({ value: g, label: g }))}
         onChange={(selectedOptions) => {
-          if (!selectedOptions) {
-            setSelectedGenotypes([]);
-            console.log("Selected Genotypes: []");
-            return;
-          }
-          const values = selectedOptions.map(o => o.value);
+          const values = (selectedOptions || []).map(o => o.value);
           if (values.includes("__ALL__")) {
-            if (selectedGenotypes.length === genotypes.length) {
-              setSelectedGenotypes([]);
-              console.log("Deselected all Genotypes");
-            } else {
-              setSelectedGenotypes(genotypes);
-              console.log("Selected all Genotypes:", genotypes);
-            }
+            const all = selectedGenotypes.length === genotypes.length ? [] : genotypes;
+            setSelectedGenotypes(all);
+            console.log("Selected Genotypes:", all);
           } else {
             setSelectedGenotypes(values);
             console.log("Selected Genotypes:", values);
@@ -194,7 +266,6 @@ function App() {
         }}
         placeholder="Select genotypes"
         closeMenuOnSelect={false}
-        hideSelectedOptions={false}
         isSearchable
         styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
         components={{
@@ -203,19 +274,8 @@ function App() {
             const isChecked = isAll
               ? selectedGenotypes.length === genotypes.length
               : isSelected;
-
             return (
-              <div
-                ref={innerRef}
-                {...innerProps}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: innerProps.isFocused ? "#f1f1f1" : "white",
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer"
-                }}
-              >
+              <div ref={innerRef} {...innerProps} style={{ padding: "0.5rem 1rem", display: "flex", alignItems: "center" }}>
                 <input type="checkbox" checked={isChecked} readOnly style={{ marginRight: "0.5rem" }} />
                 {data.label}
               </div>
@@ -250,9 +310,13 @@ function App() {
             ]}
             railStyle={{ backgroundColor: "#cfd8dc" }}
           />
-
         </div>
       )}
+
+      {/* Plot one heatmap per selected timepoint */}
+      {timepoints
+        .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
+        .map(tp => renderPlot(tp))}
     </div>
   );
 }
