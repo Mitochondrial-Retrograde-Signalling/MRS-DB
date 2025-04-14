@@ -107,7 +107,7 @@ function App() {
     const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
 
     const tileSize = 50;
-    const plotWidth = tileSize * xLabels.length + 200;
+    const plotWidth = tileSize * xLabels.length + 400;
     const plotHeight = tileSize * selectedGenes.length * selectedGenotypes.length + 200;
 
     const yLabels = [];
@@ -171,10 +171,25 @@ function App() {
     Object.entries(cellTypeGroups).forEach(([cellType, indices]) => {
       const start = Math.min(...indices);
       const end = Math.max(...indices);
-
+    
+      // Background rectangle for the cell type label
+      shapes.push({
+        type: 'rect',
+        xref: 'x',
+        yref: 'y',
+        x0: start - 0.5,
+        x1: end + 0.5,
+        y0: yLabels.length - 0.5 + 0.2,  // just above heatmap
+        y1: yLabels.length - 0.5 + 1.2,  // height of label
+        fillcolor: '#f0f0f0',           // light gray background
+        line: { width: 0 },
+        layer: 'below'
+      });
+    
+      // Cell type label text (annotation on top)
       annotations.push({
         x: (start + end) / 2,
-        y: yLabels.length - 0.5 + 0.5,
+        y: yLabels.length - 0.5 + 0.7,
         xref: 'x',
         yref: 'y',
         text: cellType,
@@ -182,7 +197,8 @@ function App() {
         font: { size: 10, color: '#333' },
         align: 'center'
       });
-
+    
+      // Optional vertical separator
       if (start > 0) {
         shapes.push({
           type: 'line',
