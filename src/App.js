@@ -174,7 +174,7 @@ function App() {
 
       annotations.push({
         x: (start + end) / 2,
-        y: -1.5,
+        y: yLabels.length - 0.5 + 0.5,
         xref: 'x',
         yref: 'y',
         text: cellType,
