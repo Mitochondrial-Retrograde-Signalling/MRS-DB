@@ -106,7 +106,7 @@ function App() {
     const xMeta = Array.from(xMetaSet).sort();
     const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
 
-    const tileSize = 40;
+    const tileSize = 50;
     const plotWidth = tileSize * xLabels.length + 200;
     const plotHeight = tileSize * selectedGenes.length * selectedGenotypes.length + 200;
 
