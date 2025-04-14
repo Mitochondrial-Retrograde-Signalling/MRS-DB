@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "fuse.js": "^7.1.0",
     "plotly.js": "^3.0.1",
+    "plotly.js-basic-dist": "^3.0.1",
     "rc-slider": "^10.6.2",
     "rc-tooltip": "^6.4.0",
     "react": "^19.0.0",
