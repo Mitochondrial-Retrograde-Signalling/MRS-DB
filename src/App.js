@@ -106,6 +106,10 @@ function App() {
     const xMeta = Array.from(xMetaSet).sort();
     const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
 
+    const tileSize = 40;
+    const plotWidth = tileSize * xLabels.length + 200;
+    const plotHeight = tileSize * selectedGenes.length * selectedGenotypes.length + 200;
+
     const yLabels = [];
     const zData = [];
     const maskData = [];
@@ -203,8 +207,8 @@ function App() {
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
         <h3>{tpKey}</h3>
         <Plot
-          useResizeHandler={true}
-          style={{ width: "100%", height: `${55 * yLabels.length + 120}px` }}
+          useResizeHandler={false}
+          style={{ width: `${plotWidth}px`, height: `${plotHeight}px` }}
           data={[
             {
               z: zData,
@@ -228,7 +232,8 @@ function App() {
             }
           ]}
           layout={{
-            height: 55 * yLabels.length + 120,
+            width: plotWidth,
+            height: plotHeight,
             margin: { l: 180, r: 30, t: 40, b: 140 },
             yaxis: {
               tickvals: yLabels.map((_, i) => i),
