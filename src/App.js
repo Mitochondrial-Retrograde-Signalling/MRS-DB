@@ -75,6 +75,12 @@ function App() {
     }
   }, [selectedOrganelle, allGenesByOrganelle]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 150);
+  }, [selectedGenes, selectedOrganelle, selectedGenotypes, selectedCellTypes]);
+
   const renderPlot = (tp) => {
     const tpKey = `${tp}h`;
     const organelleData = data[tpKey]?.[selectedOrganelle];
@@ -152,8 +158,10 @@ function App() {
       });
     }
 
+    if (!xLabels.length || !yLabels.length || !zData.length) return null;
+
     return (
-      <div style={{ width: "100%", minHeight: `${55 * yLabels.length + 120}px`, position: "relative" }}>
+      <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
         <h3>{tpKey}</h3>
         <Plot
           useResizeHandler={true}
@@ -164,11 +172,7 @@ function App() {
               x: xLabels.map((_, i) => i),
               y: yLabels.map((_, i) => i),
               type: "heatmap",
-              colorscale: [
-                [0, "blue"],
-                [0.5, "white"],
-                [1, "red"]
-              ],
+              colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
               zmid: 0,
               showscale: true,
               hovertemplate: "%{y}<br>%{x}: %{z}<extra></extra>"
@@ -204,7 +208,6 @@ function App() {
             shapes
           }}
           config={{ responsive: true }}
-          useResizeHandler={true}
         />
       </div>
     );
@@ -212,7 +215,7 @@ function App() {
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h2>Organelle, Gene, Cell Type, Genotype & Timepoint Selector</h2>
+      <h2>Arabidopsis Gene Expression Explorer</h2>
 
       <Select
         options={organelleOptions.map(o => ({ value: o, label: o }))}
