@@ -104,10 +104,7 @@ function App() {
     });
 
     const xMeta = Array.from(xMetaSet).sort();
-    const xLabels = xMeta.map(k => {
-      const [ct, cl] = k.split("||");
-      return `${ct}<br>${cl.replace("log2FC_", "")}`;
-    });
+    const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
 
     const yLabels = [];
     const zData = [];
@@ -137,6 +134,8 @@ function App() {
     });
 
     const shapes = [];
+    const annotations = [];
+
     for (let i = 0; i < selectedGenes.length; i++) {
       const startIndex = i * selectedGenotypes.length;
       const endIndex = startIndex + selectedGenotypes.length - 1;
@@ -158,6 +157,46 @@ function App() {
       });
     }
 
+    const cellTypeGroups = {};
+    xMeta.forEach((key, idx) => {
+      const [cellType] = key.split("||");
+      if (!cellTypeGroups[cellType]) cellTypeGroups[cellType] = [];
+      cellTypeGroups[cellType].push(idx);
+    });
+
+    Object.entries(cellTypeGroups).forEach(([cellType, indices]) => {
+      const start = Math.min(...indices);
+      const end = Math.max(...indices);
+
+      annotations.push({
+        x: (start + end) / 2,
+        y: -1.5,
+        xref: 'x',
+        yref: 'y',
+        text: cellType,
+        showarrow: false,
+        font: { size: 10, color: '#333' },
+        align: 'center'
+      });
+
+      if (start > 0) {
+        shapes.push({
+          type: 'line',
+          x0: start - 0.5,
+          x1: start - 0.5,
+          y0: -0.5,
+          y1: yLabels.length - 0.5,
+          xref: 'x',
+          yref: 'y',
+          line: {
+            color: 'white',
+            width: 2
+          },
+          layer: 'above'
+        });
+      }
+    });
+
     if (!xLabels.length || !yLabels.length || !zData.length) return null;
 
     return (
@@ -175,7 +214,7 @@ function App() {
               colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
               zmid: 0,
               showscale: true,
-              hovertemplate: "%{y}<br>%{x}: %{z}<extra></extra>"
+              hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
             },
             {
               z: maskData,
@@ -190,7 +229,7 @@ function App() {
           ]}
           layout={{
             height: 55 * yLabels.length + 120,
-            margin: { l: 180, r: 30, t: 40, b: 120 },
+            margin: { l: 180, r: 30, t: 40, b: 140 },
             yaxis: {
               tickvals: yLabels.map((_, i) => i),
               ticktext: yLabels,
@@ -203,9 +242,14 @@ function App() {
               ticktext: xLabels,
               tickangle: -45,
               automargin: true,
-              constrain: 'domain'
+              constrain: 'domain',
+              ticks: '',
+              showline: false,
+              showgrid: false,
+              zeroline: false
             },
-            shapes
+            shapes,
+            annotations
           }}
           config={{ responsive: true }}
         />
@@ -235,22 +279,7 @@ function App() {
           placeholder="Select genes"
           isSearchable
           isDisabled={!selectedOrganelle}
-          styles={{
-            container: base => ({ ...base, width: 300 }),
-            valueContainer: base => ({
-              ...base,
-              maxHeight: '70px',
-              overflowY: 'auto'
-            }),
-            multiValue: base => ({
-              ...base,
-              maxWidth: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            })
-          }}
-          
+          styles={{ container: base => ({ ...base, width: 300 }) }}
         />
 
         <Select
@@ -261,22 +290,7 @@ function App() {
           placeholder="Select cell types"
           closeMenuOnSelect={false}
           isSearchable
-          styles={{
-            container: base => ({ ...base, width: 300 }),
-            valueContainer: base => ({
-              ...base,
-              maxHeight: '70px',
-              overflowY: 'auto'
-            }),
-            multiValue: base => ({
-              ...base,
-              maxWidth: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            })
-          }}
-          
+          styles={{ container: base => ({ ...base, width: 300 }) }}
         />
 
         <Select
@@ -287,22 +301,7 @@ function App() {
           placeholder="Select genotypes"
           closeMenuOnSelect={false}
           isSearchable
-          styles={{
-            container: base => ({ ...base, width: 300 }),
-            valueContainer: base => ({
-              ...base,
-              maxHeight: '70px',
-              overflowY: 'auto'
-            }),
-            multiValue: base => ({
-              ...base,
-              maxWidth: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            })
-          }}
-          
+          styles={{ container: base => ({ ...base, width: 300 }) }}
         />
 
         {timepoints.length > 1 && (
