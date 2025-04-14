@@ -217,66 +217,113 @@ function App() {
     <div style={{ padding: "1rem" }}>
       <h2>Arabidopsis Gene Expression Explorer</h2>
 
-      <Select
-        options={organelleOptions.map(o => ({ value: o, label: o }))}
-        value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
-        onChange={opt => setSelectedOrganelle(opt?.value || null)}
-        placeholder="Search organelle..."
-        isSearchable
-        styles={{ container: base => ({ ...base, width: 300, marginBottom: "1rem" }) }}
-      />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+        <Select
+          options={organelleOptions.map(o => ({ value: o, label: o }))}
+          value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
+          onChange={opt => setSelectedOrganelle(opt?.value || null)}
+          placeholder="Search organelle..."
+          isSearchable
+          styles={{ container: base => ({ ...base, width: 300 }) }}
+        />
 
-      <Select
-        isMulti
-        options={geneOptions.map(g => ({ value: g, label: g }))}
-        value={selectedGenes.map(g => ({ value: g, label: g }))}
-        onChange={opts => setSelectedGenes(opts.map(o => o.value))}
-        placeholder="Select genes"
-        isSearchable
-        isDisabled={!selectedOrganelle}
-        styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
-      />
+        <Select
+          isMulti
+          options={geneOptions.map(g => ({ value: g, label: g }))}
+          value={selectedGenes.map(g => ({ value: g, label: g }))}
+          onChange={opts => setSelectedGenes(opts.map(o => o.value))}
+          placeholder="Select genes"
+          isSearchable
+          isDisabled={!selectedOrganelle}
+          styles={{
+            container: base => ({ ...base, width: 300 }),
+            valueContainer: base => ({
+              ...base,
+              maxHeight: '70px',
+              overflowY: 'auto'
+            }),
+            multiValue: base => ({
+              ...base,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            })
+          }}
+          
+        />
 
-      <Select
-        isMulti
-        options={cellTypes.map(ct => ({ value: ct, label: ct }))}
-        value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
-        onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
-        placeholder="Select cell types"
-        closeMenuOnSelect={false}
-        isSearchable
-        styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
-      />
+        <Select
+          isMulti
+          options={cellTypes.map(ct => ({ value: ct, label: ct }))}
+          value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
+          onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
+          placeholder="Select cell types"
+          closeMenuOnSelect={false}
+          isSearchable
+          styles={{
+            container: base => ({ ...base, width: 300 }),
+            valueContainer: base => ({
+              ...base,
+              maxHeight: '70px',
+              overflowY: 'auto'
+            }),
+            multiValue: base => ({
+              ...base,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            })
+          }}
+          
+        />
 
-      <Select
-        isMulti
-        options={genotypes.map(g => ({ value: g, label: g }))}
-        value={selectedGenotypes.map(g => ({ value: g, label: g }))}
-        onChange={(opts) => setSelectedGenotypes((opts || []).map(o => o.value))}
-        placeholder="Select genotypes"
-        closeMenuOnSelect={false}
-        isSearchable
-        styles={{ container: base => ({ ...base, width: 400, marginBottom: "1rem" }) }}
-      />
+        <Select
+          isMulti
+          options={genotypes.map(g => ({ value: g, label: g }))}
+          value={selectedGenotypes.map(g => ({ value: g, label: g }))}
+          onChange={(opts) => setSelectedGenotypes((opts || []).map(o => o.value))}
+          placeholder="Select genotypes"
+          closeMenuOnSelect={false}
+          isSearchable
+          styles={{
+            container: base => ({ ...base, width: 300 }),
+            valueContainer: base => ({
+              ...base,
+              maxHeight: '70px',
+              overflowY: 'auto'
+            }),
+            multiValue: base => ({
+              ...base,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            })
+          }}
+          
+        />
 
-      {timepoints.length > 1 && (
-        <div style={{ marginTop: "2rem", width: 500 }}>
-          <strong>Timepoint</strong>
-          <Slider
-            range
-            min={timepoints[0]}
-            max={timepoints[timepoints.length - 1]}
-            value={selectedTimepointRange}
-            onChange={range => setSelectedTimepointRange(range)}
-            marks={timepoints.reduce((acc, tp) => {
-              acc[tp] = tp.toString();
-              return acc;
-            }, {})}
-            step={null}
-            allowCross={false}
-          />
-        </div>
-      )}
+        {timepoints.length > 1 && (
+          <div style={{ width: 300, paddingTop: '1rem' }}>
+            <strong>Timepoint</strong>
+            <Slider
+              range
+              min={timepoints[0]}
+              max={timepoints[timepoints.length - 1]}
+              value={selectedTimepointRange}
+              onChange={range => setSelectedTimepointRange(range)}
+              marks={timepoints.reduce((acc, tp) => {
+                acc[tp] = tp.toString();
+                return acc;
+              }, {})}
+              step={null}
+              allowCross={false}
+            />
+          </div>
+        )}
+      </div>
 
       {timepoints
         .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
