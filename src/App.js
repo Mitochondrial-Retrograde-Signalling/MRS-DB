@@ -182,7 +182,9 @@ function App() {
         y0: yLabels.length - 0.5 + 0.2,  // just above heatmap
         y1: yLabels.length - 0.5 + 1.2,  // height of label
         fillcolor: '#bfbaba',           // light gray background
-        line: { width: 0 },
+        line: {
+          color: 'white',
+          width: 2 },
         layer: 'below'
       });
     
