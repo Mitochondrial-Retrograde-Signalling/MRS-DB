@@ -3,8 +3,6 @@ import Select from "react-select";
 import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
-import Tooltip from '@mui/material/Tooltip';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 function App() {
   const [data, setData] = useState({});
@@ -83,18 +81,215 @@ function App() {
     }, 150);
   }, [selectedGenes, selectedOrganelle, selectedGenotypes, selectedCellTypes]);
 
+  const renderPlot = (tp) => {
+    const tpKey = `${tp}h`;
+    const organelleData = data[tpKey]?.[selectedOrganelle];
+    if (!organelleData) return null;
+
+    const xMetaSet = new Set();
+    selectedGenes.forEach(gene => {
+      const geneData = organelleData[gene];
+      if (!geneData) return;
+      selectedGenotypes.forEach(genotype => {
+        const cellMap = geneData[genotype] || {};
+        selectedCellTypes.forEach(cellType => {
+          const clusters = cellMap[cellType] || {};
+          Object.keys(clusters).forEach(cluster => {
+            if (cluster.startsWith("log2FC")) {
+              xMetaSet.add(`${cellType}||${cluster}`);
+            }
+          });
+        });
+      });
+    });
+
+    const xMeta = Array.from(xMetaSet).sort();
+    const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
+
+    const tileSize = 50;
+    const plotWidth = tileSize * xLabels.length + 400;
+    const plotHeight = tileSize * selectedGenes.length * selectedGenotypes.length + 200;
+
+    const yLabels = [];
+    const zData = [];
+    const maskData = [];
+
+    selectedGenes.forEach(gene => {
+      selectedGenotypes.forEach(genotype => {
+        yLabels.push(`${gene} - ${genotype}`);
+        const zRow = [];
+        const maskRow = [];
+
+        xMeta.forEach(key => {
+          const [cellType, cluster] = key.split("||");
+          const val = organelleData[gene]?.[genotype]?.[cellType]?.[cluster];
+          if (val === "ns" || val === undefined) {
+            zRow.push(null);
+            maskRow.push(1);
+          } else {
+            zRow.push(parseFloat(val));
+            maskRow.push(0);
+          }
+        });
+
+        zData.push(zRow);
+        maskData.push(maskRow);
+      });
+    });
+
+    const shapes = [];
+    const annotations = [];
+
+    for (let i = 0; i < selectedGenes.length; i++) {
+      const startIndex = i * selectedGenotypes.length;
+      const endIndex = startIndex + selectedGenotypes.length - 1;
+
+      shapes.push({
+        type: 'rect',
+        xref: 'x',
+        yref: 'y',
+        x0: -0.5,
+        x1: xLabels.length - 0.5,
+        y0: startIndex - 0.5,
+        y1: endIndex + 0.5,
+        line: {
+          color: 'white',
+          width: 2
+        },
+        layer: 'above',
+        fillcolor: 'rgba(0,0,0,0)'
+      });
+    }
+
+    const cellTypeGroups = {};
+    xMeta.forEach((key, idx) => {
+      const [cellType] = key.split("||");
+      if (!cellTypeGroups[cellType]) cellTypeGroups[cellType] = [];
+      cellTypeGroups[cellType].push(idx);
+    });
+
+    Object.entries(cellTypeGroups).forEach(([cellType, indices]) => {
+      const start = Math.min(...indices);
+      const end = Math.max(...indices);
+    
+      // Background rectangle for the cell type label
+      shapes.push({
+        type: 'rect',
+        xref: 'x',
+        yref: 'y',
+        x0: start - 0.5,
+        x1: end + 0.5,
+        y0: yLabels.length - 0.5 + 0.2,  // just above heatmap
+        y1: yLabels.length - 0.5 + 1.2,  // height of label
+        fillcolor: '#bfbaba',           // light gray background
+        line: {
+          color: 'white',
+          width: 2 },
+        layer: 'below'
+      });
+    
+      // Cell type label text (annotation on top)
+      annotations.push({
+        x: (start + end) / 2,
+        y: yLabels.length - 0.5 + 0.7,
+        xref: 'x',
+        yref: 'y',
+        text: cellType,
+        showarrow: false,
+        font: { size: 10, color: '#333' },
+        align: 'center'
+      });
+    
+      // Optional vertical separator
+      if (start > 0) {
+        shapes.push({
+          type: 'line',
+          x0: start - 0.5,
+          x1: start - 0.5,
+          y0: -0.5,
+          y1: yLabels.length - 0.5,
+          xref: 'x',
+          yref: 'y',
+          line: {
+            color: 'white',
+            width: 2
+          },
+          layer: 'above'
+        });
+      }
+    });
+
+    if (!xLabels.length || !yLabels.length || !zData.length) return null;
+
+    return (
+      <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
+        <h3>{tpKey}</h3>
+        <Plot
+          useResizeHandler={false}
+          style={{ width: `${plotWidth}px`, height: `${plotHeight}px` }}
+          data={[
+            {
+              z: zData,
+              x: xLabels.map((_, i) => i),
+              y: yLabels.map((_, i) => i),
+              type: "heatmap",
+              colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
+              zmid: 0,
+              showscale: true,
+              hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
+            },
+            {
+              z: maskData,
+              x: xLabels.map((_, i) => i),
+              y: yLabels.map((_, i) => i),
+              type: "heatmap",
+              colorscale: [[0, "rgba(0,0,0,0)"], [1, "#d3d3d3"]],
+              showscale: false,
+              hoverinfo: "skip",
+              opacity: 1
+            }
+          ]}
+          layout={{
+            width: plotWidth,
+            height: plotHeight,
+            margin: { l: 180, r: 30, t: 40, b: 140 },
+            yaxis: {
+              tickvals: yLabels.map((_, i) => i),
+              ticktext: yLabels,
+              automargin: true,
+              dtick: 1,
+              constrain: 'domain'
+            },
+            xaxis: {
+              tickvals: xLabels.map((_, i) => i),
+              ticktext: xLabels,
+              tickangle: -45,
+              automargin: true,
+              constrain: 'domain',
+              ticks: '',
+              showline: false,
+              showgrid: false,
+              zeroline: false
+            },
+            shapes,
+            annotations
+          }}
+          config={{ responsive: true }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div style={{ padding: "1rem" }}>
       <h2>Arabidopsis Gene Expression Explorer</h2>
-
+  
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-
+  
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Organelle</label>
-            <Tooltip title="Select an organelle to explore gene expression." arrow>
-              <InfoOutlinedIcon fontSize="small" color="action" />
-            </Tooltip>
+            <span title="Select an organelle to explore gene expression.">ℹ️</span>
           </div>
           <Select
             options={organelleOptions.map(o => ({ value: o, label: o }))}
@@ -105,13 +300,11 @@ function App() {
             styles={{ container: base => ({ ...base, width: 300 }) }}
           />
         </div>
-
+  
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Genes</label>
-            <Tooltip title="Choose one or more genes from the selected organelle." arrow>
-              <InfoOutlinedIcon fontSize="small" color="action" />
-            </Tooltip>
+            <span title="Choose one or more genes from the selected organelle.">ℹ️</span>
           </div>
           <Select
             isMulti
@@ -124,13 +317,11 @@ function App() {
             styles={{ container: base => ({ ...base, width: 300 }) }}
           />
         </div>
-
+  
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Cell Types</label>
-            <Tooltip title="Filter by specific cell types to focus your analysis." arrow>
-              <InfoOutlinedIcon fontSize="small" color="action" />
-            </Tooltip>
+            <span title="Filter by specific cell types to focus your analysis.">ℹ️</span>
           </div>
           <Select
             isMulti
@@ -143,13 +334,11 @@ function App() {
             styles={{ container: base => ({ ...base, width: 300 }) }}
           />
         </div>
-
+  
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Genotypes</label>
-            <Tooltip title="Compare gene expression across selected genotypes." arrow>
-              <InfoOutlinedIcon fontSize="small" color="action" />
-            </Tooltip>
+            <span title="Compare gene expression across selected genotypes.">ℹ️</span>
           </div>
           <Select
             isMulti
@@ -162,14 +351,12 @@ function App() {
             styles={{ container: base => ({ ...base, width: 300 }) }}
           />
         </div>
-
+  
         {timepoints.length > 1 && (
           <div style={{ width: 300, paddingTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <strong>Timepoint</strong>
-              <Tooltip title="Select a range of timepoints to display plots." arrow>
-                <InfoOutlinedIcon fontSize="small" color="action" />
-              </Tooltip>
+              <span title="Select a range of timepoints to display plots.">ℹ️</span>
             </div>
             <Slider
               range
@@ -187,6 +374,11 @@ function App() {
           </div>
         )}
       </div>
+  
+
+      {timepoints
+        .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
+        .map(tp => renderPlot(tp))}
     </div>
   );
 }
