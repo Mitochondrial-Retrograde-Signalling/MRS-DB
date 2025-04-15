@@ -297,7 +297,7 @@ function App() {
         {/* Organelle */}
         <div style={{ gridColumn: '1 / 2', gridRow: '1' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Organelle</label>
+            <strong>Organelle</strong>
             <span title="Select an organelle to explore gene expression.">ℹ️</span>
           </div>
           <div style={{ height: 56 }}>
@@ -315,7 +315,7 @@ function App() {
         {/* Genotypes */}
         <div style={{ gridColumn: '1 / 2', gridRow: '2' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Genotypes</label>
+            <strong>Genotypes</strong>
             <span title="Compare gene expression across selected genotypes.">ℹ️</span>
           </div>
           <Select
@@ -342,7 +342,7 @@ function App() {
         {/* Genes */}
         <div style={{ gridColumn: '2 / 3', gridRow: '1 / 3' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Genes</label>
+            <strong>Genes</strong>
             <span title="Choose one or more genes from the selected organelle.">ℹ️</span>
           </div>
           <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
@@ -377,7 +377,7 @@ function App() {
         {/* Cell Types */}
         <div style={{ gridColumn: '3 / 4', gridRow: '1 / 3' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Cell Types</label>
+            <strong>Cell Types</strong>
             <span title="Filter by specific cell types to focus your analysis.">ℹ️</span>
           </div>
           <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
