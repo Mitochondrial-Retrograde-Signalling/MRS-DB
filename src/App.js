@@ -284,58 +284,36 @@ function App() {
     <div style={{ padding: "1rem" }}>
       <h2>Arabidopsis Gene Expression Explorer</h2>
   
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-  
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 300px)',
+          gridTemplateRows: 'auto auto',
+          columnGap: '2rem',
+          rowGap: '0.25rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        {/* Organelle */}
+        <div style={{ gridColumn: '1 / 2', gridRow: '1' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Organelle</label>
             <span title="Select an organelle to explore gene expression.">ℹ️</span>
           </div>
-          <Select
-            options={organelleOptions.map(o => ({ value: o, label: o }))}
-            value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
-            onChange={opt => setSelectedOrganelle(opt?.value || null)}
-            placeholder="Search organelle..."
-            isSearchable
-            styles={{ container: base => ({ ...base, width: 300 }) }}
-          />
-        </div>
-  
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Genes</label>
-            <span title="Choose one or more genes from the selected organelle.">ℹ️</span>
+          <div style={{ height: 56 }}>
+            <Select
+              options={organelleOptions.map(o => ({ value: o, label: o }))}
+              value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
+              onChange={opt => setSelectedOrganelle(opt?.value || null)}
+              placeholder="Search organelle..."
+              isSearchable
+              styles={{ container: base => ({ ...base, width: '100%' }) }}
+            />
           </div>
-          <Select
-            isMulti
-            options={geneOptions.map(g => ({ value: g, label: g }))}
-            value={selectedGenes.map(g => ({ value: g, label: g }))}
-            onChange={opts => setSelectedGenes(opts.map(o => o.value))}
-            placeholder="Select genes"
-            isSearchable
-            isDisabled={!selectedOrganelle}
-            styles={{ container: base => ({ ...base, width: 300 }) }}
-          />
         </div>
   
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <label>Cell Types</label>
-            <span title="Filter by specific cell types to focus your analysis.">ℹ️</span>
-          </div>
-          <Select
-            isMulti
-            options={cellTypes.map(ct => ({ value: ct, label: ct }))}
-            value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
-            onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
-            placeholder="Select cell types"
-            closeMenuOnSelect={false}
-            isSearchable
-            styles={{ container: base => ({ ...base, width: 300 }) }}
-          />
-        </div>
-  
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Genotypes */}
+        <div style={{ gridColumn: '1 / 2', gridRow: '2' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <label>Genotypes</label>
             <span title="Compare gene expression across selected genotypes.">ℹ️</span>
@@ -348,12 +326,92 @@ function App() {
             placeholder="Select genotypes"
             closeMenuOnSelect={false}
             isSearchable
-            styles={{ container: base => ({ ...base, width: 300 }) }}
+            styles={{
+              container: base => ({ ...base, width: '100%' }),
+              valueContainer: base => ({
+                ...base,
+                maxHeight: 80,
+                overflowY: 'auto',
+                flexWrap: 'wrap',
+              }),
+              menu: base => ({ ...base, zIndex: 9999 }),
+            }}
           />
         </div>
   
+        {/* Genes */}
+        <div style={{ gridColumn: '2 / 3', gridRow: '1 / 3' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label>Genes</label>
+            <span title="Choose one or more genes from the selected organelle.">ℹ️</span>
+          </div>
+          <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
+            <Select
+              isMulti
+              options={geneOptions.map(g => ({ value: g, label: g }))}
+              value={selectedGenes.map(g => ({ value: g, label: g }))}
+              onChange={opts => setSelectedGenes(opts.map(o => o.value))}
+              placeholder="Select genes"
+              isSearchable
+              isDisabled={!selectedOrganelle}
+              styles={{
+                container: base => ({ ...base, width: '100%' }),
+                control: base => ({
+                  ...base,
+                  minHeight: 120,
+                  height: 120,
+                  alignItems: 'flex-start',
+                }),
+                valueContainer: base => ({
+                  ...base,
+                  maxHeight: 80,
+                  overflowY: 'auto',
+                  flexWrap: 'wrap',
+                }),
+                menu: base => ({ ...base, zIndex: 9999 }),
+              }}
+            />
+          </div>
+        </div>
+  
+        {/* Cell Types */}
+        <div style={{ gridColumn: '3 / 4', gridRow: '1 / 3' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label>Cell Types</label>
+            <span title="Filter by specific cell types to focus your analysis.">ℹ️</span>
+          </div>
+          <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
+            <Select
+              isMulti
+              options={cellTypes.map(ct => ({ value: ct, label: ct }))}
+              value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
+              onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
+              placeholder="Select cell types"
+              closeMenuOnSelect={false}
+              isSearchable
+              styles={{
+                container: base => ({ ...base, width: '100%' }),
+                control: base => ({
+                  ...base,
+                  minHeight: 120,
+                  height: 120,
+                  alignItems: 'flex-start',
+                }),
+                valueContainer: base => ({
+                  ...base,
+                  maxHeight: 80,
+                  overflowY: 'auto',
+                  flexWrap: 'wrap',
+                }),
+                menu: base => ({ ...base, zIndex: 9999 }),
+              }}
+            />
+          </div>
+        </div>
+  
+        {/* Timepoint */}
         {timepoints.length > 1 && (
-          <div style={{ width: 300, paddingTop: '1rem' }}>
+          <div style={{ gridColumn: '4 / 5', gridRow: '1 / 3' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <strong>Timepoint</strong>
               <span title="Select a range of timepoints to display plots.">ℹ️</span>
@@ -370,17 +428,27 @@ function App() {
               }, {})}
               step={null}
               allowCross={false}
+              style={{ width: '100%' }}
             />
           </div>
         )}
       </div>
   
-
+      {/* Plots */}
       {timepoints
         .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
         .map(tp => renderPlot(tp))}
     </div>
   );
+  
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
 export default App;
