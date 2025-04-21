@@ -219,7 +219,19 @@ function App() {
       }
     });
 
-    if (!xLabels.length || !yLabels.length || !zData.length) return null;
+    const allNull = zData.length === 0 || zData.flat().every(v => v === null);
+
+    // Skip rendering the plot if there's no data or "ns" (not significant)
+    if (!xLabels.length || !yLabels.length || !zData.length || allNull) {
+      return (
+        <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
+          <h3>{tpKey}</h3>
+          <div style={{ marginBottom: '0.5rem', color: '#666', fontStyle: 'italic' }}>
+            All values are non-significant or missing. No heatmap rendered.
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
