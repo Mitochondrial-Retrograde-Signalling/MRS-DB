@@ -261,6 +261,13 @@ function App() {
                 colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
                 zmid: 0,
                 showscale: true,
+                colorbar: {
+                  title: {
+                    text: "log₂ Fold Change",
+                    side: "right",
+                    font: { size: 12, weight: "bold" }
+                  }
+                },
                 hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
               },
               {
