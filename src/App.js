@@ -18,7 +18,17 @@ function App() {
   const [genotypes, setGenotypes] = useState([]);
   const [selectedGenotypes, setSelectedGenotypes] = useState([]);
   const [plotVisibility, setPlotVisibility] = useState({});
+  const [showScrollUp, setShowScrollUp] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollUp(window.scrollY > 300);
+    };
+  
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  
   useEffect(() => {
     const files = ["1h.json", "3h.json", "6h.json"];
     Promise.all(
@@ -472,6 +482,28 @@ function App() {
       {timepoints
         .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
         .map(tp => renderPlot(tp))}
+
+      {showScrollUp && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            zIndex: 1000,
+            padding: '0.6rem 0.95rem',
+            fontSize: '1.5rem',
+            borderRadius: '50%',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            cursor: 'pointer'
+          }}
+        >
+          ⮝
+        </button>
+      )}
     </div>
   );
   
