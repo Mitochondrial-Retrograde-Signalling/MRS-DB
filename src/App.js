@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Select from "react-select";
 import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
 
 function App() {
   const [data, setData] = useState({});
@@ -20,15 +21,18 @@ function App() {
   const [plotVisibility, setPlotVisibility] = useState({});
   const [showScrollUp, setShowScrollUp] = useState(false);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const skipNextSync = useRef(false);
+
+  // This is for the scroll up button
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollUp(window.scrollY > 300);
-    };
-  
+    const handleScroll = () => setShowScrollUp(window.scrollY > 300);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
+  // This is for reading the json files
   useEffect(() => {
     const files = ["1h.json", "3h.json", "6h.json"];
     Promise.all(
@@ -78,6 +82,7 @@ function App() {
     });
   }, []);
 
+  // This is for showing the genes specific to the selected Organelle
   useEffect(() => {
     if (selectedOrganelle && allGenesByOrganelle[selectedOrganelle]) {
       const genes = Array.from(allGenesByOrganelle[selectedOrganelle]).sort();
@@ -86,12 +91,83 @@ function App() {
     }
   }, [selectedOrganelle, allGenesByOrganelle]);
 
+  // This resizes the heatmap upon new selection
+  // It has some time delay to avoid early rendering
   useEffect(() => {
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
     }, 150);
   }, [selectedGenes, selectedOrganelle, selectedGenotypes, selectedCellTypes]);
 
+  useEffect(() => {
+    if (
+      organelleOptions.length === 0 ||
+      genotypes.length === 0 ||
+      cellTypes.length === 0 ||
+      timepoints.length === 0 ||
+      Object.keys(allGenesByOrganelle).length === 0
+    ) return;
+
+    if (skipNextSync.current) {
+      skipNextSync.current = false;
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const org = params.get("organelle") || organelleOptions[0];
+    const genes = params.get("genes")?.split(",") || (
+      org && allGenesByOrganelle[org] ? Array.from(allGenesByOrganelle[org]).slice(0, 2) : []
+    );
+    const cellTypesParsed = params.get("cellTypes")?.split(",") || [cellTypes[0]];
+    const genotypesParsed = params.get("genotypes")?.split(",") || [genotypes[0]];
+
+    const tpRange = params.get("tpRange")?.split(",").map(Number);
+    const validRange = tpRange?.length === 2 && !tpRange.includes(NaN)
+      ? tpRange
+      : [timepoints[0], timepoints[timepoints.length - 1]];
+
+    setSelectedOrganelle(org);
+    setSelectedGenes(genes);
+    setSelectedCellTypes(cellTypesParsed);
+    setSelectedGenotypes(genotypesParsed);
+    setSelectedTimepointRange(validRange);
+  }, [location.search, organelleOptions, genotypes, cellTypes, allGenesByOrganelle, timepoints]);
+
+  useEffect(() => {
+    if (
+      !selectedOrganelle ||
+      selectedGenes.length === 0 ||
+      selectedGenotypes.length === 0 ||
+      selectedCellTypes.length === 0 ||
+      (selectedTimepointRange[0] === 0 && selectedTimepointRange[1] === 0)
+    ) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (selectedOrganelle) params.set("organelle", selectedOrganelle);
+    if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
+    if (selectedGenotypes.length) params.set("genotypes", selectedGenotypes.join(","));
+    if (selectedCellTypes.length) params.set("cellTypes", selectedCellTypes.join(","));
+    if (selectedTimepointRange.length === 2) params.set("tpRange", selectedTimepointRange.join(","));
+
+    const newSearch = params.toString();
+    const currentSearch = location.search.startsWith("?") ? location.search.substring(1) : location.search;
+
+    if (newSearch !== currentSearch) {
+      skipNextSync.current = true;
+      navigate({ search: newSearch }, { replace: true });
+    }
+  }, [
+    selectedOrganelle,
+    selectedGenes,
+    selectedGenotypes,
+    selectedCellTypes,
+    selectedTimepointRange,
+    navigate,
+    location.search
+  ]);
+  // Renders plot for selected timepoint/s
   const renderPlot = (tp) => {
     const tpKey = `${tp}h`;
     const organelleData = data[tpKey]?.[selectedOrganelle];
@@ -506,15 +582,12 @@ function App() {
       )}
     </div>
   );
-  
-  
-  
-  
-  
-  
-  
-  
-  
 }
 
-export default App;
+export default function WrappedApp() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}
