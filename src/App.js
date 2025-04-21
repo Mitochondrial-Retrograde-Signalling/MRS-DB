@@ -258,7 +258,8 @@ function App() {
               ticktext: yLabels,
               automargin: true,
               dtick: 1,
-              constrain: 'domain'
+              constrain: 'domain',
+              ticks: "",
             },
             xaxis: {
               tickvals: xLabels.map((_, i) => i),
