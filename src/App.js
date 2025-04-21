@@ -351,8 +351,8 @@ function App() {
       }
     });
 
-    const allNull = zData.length === 0 || zData.flat().every(v => v === null);
-
+    const allNull = zData.length === 0 || zData.flat().every(v => v === null || Number.isNaN(v));
+    
     // Skip rendering the plot if there's no data or "ns" (not significant)
     if (!xLabels.length || !yLabels.length || !zData.length || allNull) {
       return (
