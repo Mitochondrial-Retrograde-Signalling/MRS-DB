@@ -230,27 +230,37 @@ function App() {
     const yLabels = [];
     const zData = [];
     const maskData = [];
+    const hoverData = [];
 
     selectedGenes.forEach(gene => {
       selectedGenotypes.forEach(genotype => {
         yLabels.push(`${gene} - ${genotype}`);
         const zRow = [];
         const maskRow = [];
+        const hoverTextRow = [];
 
         xMeta.forEach(key => {
           const [cellType, cluster] = key.split("||");
           const val = organelleData[gene]?.[genotype]?.[cellType]?.[cluster];
-          if (val === "ns" || val === undefined) {
-            zRow.push(null);
+        
+          if (val === "ns") {
+            zRow.push(NaN);              // Still not plottable
+            maskRow.push(1);             // Masked
+            hoverTextRow.push("ns");     // show "ns"
+          } else if (val === undefined || val === null) {
+            zRow.push(null);             // Missing data
             maskRow.push(1);
+            hoverTextRow.push("No data");  // distinguish
           } else {
             zRow.push(parseFloat(val));
             maskRow.push(0);
+            hoverTextRow.push(val);
           }
         });
 
         zData.push(zRow);
         maskData.push(maskRow);
+        hoverData.push(hoverTextRow);
       });
     });
 
@@ -389,7 +399,9 @@ function App() {
                     font: { size: 12, weight: "bold" }
                   }
                 },
-                hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
+                z: zData,
+                hovertext: hoverData,
+                hovertemplate: "%{y}<br>%{x}: %{hovertext}<extra></extra>",
               },
               {
                 z: maskData,
