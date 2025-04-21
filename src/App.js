@@ -99,74 +99,90 @@ function App() {
     }, 150);
   }, [selectedGenes, selectedOrganelle, selectedGenotypes, selectedCellTypes]);
 
-  useEffect(() => {
-    if (
-      organelleOptions.length === 0 ||
-      genotypes.length === 0 ||
-      cellTypes.length === 0 ||
-      timepoints.length === 0 ||
-      Object.keys(allGenesByOrganelle).length === 0
-    ) return;
+// Sync organelle and others first — but NOT genes
+useEffect(() => {
+  if (
+    organelleOptions.length === 0 ||
+    genotypes.length === 0 ||
+    cellTypes.length === 0 ||
+    timepoints.length === 0 ||
+    Object.keys(allGenesByOrganelle).length === 0
+  ) return;
 
-    if (skipNextSync.current) {
-      skipNextSync.current = false;
-      return;
-    }
+  if (skipNextSync.current) {
+    skipNextSync.current = false;
+    return;
+  }
 
-    const params = new URLSearchParams(location.search);
-    const org = params.get("organelle") || organelleOptions[0];
-    const genes = params.get("genes")?.split(",") || (
-      org && allGenesByOrganelle[org] ? Array.from(allGenesByOrganelle[org]).slice(0, 2) : []
-    );
-    const cellTypesParsed = params.get("cellTypes")?.split(",") || [cellTypes[0]];
-    const genotypesParsed = params.get("genotypes")?.split(",") || [genotypes[0]];
+  const params = new URLSearchParams(location.search);
+  const org = params.get("organelle") || organelleOptions[0];
+  const cellTypesParsed = params.get("cellTypes")?.split(",") || [cellTypes[0]];
+  const genotypesParsed = params.get("genotypes")?.split(",") || [genotypes[0]];
 
-    const tpRange = params.get("tpRange")?.split(",").map(Number);
-    const validRange = tpRange?.length === 2 && !tpRange.includes(NaN)
-      ? tpRange
-      : [timepoints[0], timepoints[timepoints.length - 1]];
+  const tpRange = params.get("tpRange")?.split(",").map(Number);
+  const validRange = tpRange?.length === 2 && !tpRange.includes(NaN)
+    ? tpRange
+    : [timepoints[0], timepoints[timepoints.length - 1]];
 
-    setSelectedOrganelle(org);
-    setSelectedGenes(genes);
-    setSelectedCellTypes(cellTypesParsed);
-    setSelectedGenotypes(genotypesParsed);
-    setSelectedTimepointRange(validRange);
-  }, [location.search, organelleOptions, genotypes, cellTypes, allGenesByOrganelle, timepoints]);
+  setSelectedOrganelle(org);
+  setSelectedCellTypes(cellTypesParsed);
+  setSelectedGenotypes(genotypesParsed);
+  setSelectedTimepointRange(validRange);
+}, [
+  location.search,
+  organelleOptions,
+  genotypes,
+  cellTypes,
+  allGenesByOrganelle,
+  timepoints
+]);
 
-  useEffect(() => {
-    if (
-      !selectedOrganelle ||
-      selectedGenes.length === 0 ||
-      selectedGenotypes.length === 0 ||
-      selectedCellTypes.length === 0 ||
-      (selectedTimepointRange[0] === 0 && selectedTimepointRange[1] === 0)
-    ) {
-      return;
-    }
+// Sync genes separately — only after geneOptions are available
+useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const genes = params.get("genes")?.split(",") || [];
+  const validGenes = genes.filter(g => geneOptions.includes(g));
+  if (validGenes.length) {
+    setSelectedGenes(validGenes);
+  }
+}, [geneOptions, location.search]);
 
-    const params = new URLSearchParams();
-    if (selectedOrganelle) params.set("organelle", selectedOrganelle);
-    if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
-    if (selectedGenotypes.length) params.set("genotypes", selectedGenotypes.join(","));
-    if (selectedCellTypes.length) params.set("cellTypes", selectedCellTypes.join(","));
-    if (selectedTimepointRange.length === 2) params.set("tpRange", selectedTimepointRange.join(","));
+// Sync state → URL only if meaningful values are selected
+useEffect(() => {
+  if (
+    !selectedOrganelle ||
+    selectedGenes.length === 0 ||
+    selectedGenotypes.length === 0 ||
+    selectedCellTypes.length === 0 ||
+    (selectedTimepointRange[0] === 0 && selectedTimepointRange[1] === 0)
+  ) {
+    return;
+  }
 
-    const newSearch = params.toString();
-    const currentSearch = location.search.startsWith("?") ? location.search.substring(1) : location.search;
+  const params = new URLSearchParams();
+  if (selectedOrganelle) params.set("organelle", selectedOrganelle);
+  if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
+  if (selectedGenotypes.length) params.set("genotypes", selectedGenotypes.join(","));
+  if (selectedCellTypes.length) params.set("cellTypes", selectedCellTypes.join(","));
+  if (selectedTimepointRange.length === 2) params.set("tpRange", selectedTimepointRange.join(","));
 
-    if (newSearch !== currentSearch) {
-      skipNextSync.current = true;
-      navigate({ search: newSearch }, { replace: true });
-    }
-  }, [
-    selectedOrganelle,
-    selectedGenes,
-    selectedGenotypes,
-    selectedCellTypes,
-    selectedTimepointRange,
-    navigate,
-    location.search
-  ]);
+  const newSearch = params.toString();
+  const currentSearch = location.search.startsWith("?") ? location.search.substring(1) : location.search;
+
+  if (newSearch !== currentSearch) {
+    skipNextSync.current = true;
+    navigate({ search: newSearch }, { replace: true });
+  }
+}, [
+  selectedOrganelle,
+  selectedGenes,
+  selectedGenotypes,
+  selectedCellTypes,
+  selectedTimepointRange,
+  navigate,
+  location.search
+]);
+
   // Renders plot for selected timepoint/s
   const renderPlot = (tp) => {
     const tpKey = `${tp}h`;
