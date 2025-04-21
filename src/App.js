@@ -227,7 +227,7 @@ function App() {
         <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
           <h3>{tpKey}</h3>
           <div style={{ marginBottom: '0.5rem', color: '#666', fontStyle: 'italic' }}>
-            All values are non-significant or missing. No heatmap rendered.
+            All values are not statistically significant or missing. No heatmap rendered.
           </div>
         </div>
       );
