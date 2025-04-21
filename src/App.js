@@ -17,6 +17,7 @@ function App() {
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
   const [genotypes, setGenotypes] = useState([]);
   const [selectedGenotypes, setSelectedGenotypes] = useState([]);
+  const [plotVisibility, setPlotVisibility] = useState({});
 
   useEffect(() => {
     const files = ["1h.json", "3h.json", "6h.json"];
@@ -233,62 +234,75 @@ function App() {
       );
     }
 
+    const visible = plotVisibility[tpKey] !== false; // Default to true
+    const toggleVisibility = () => {
+      setPlotVisibility(prev => ({ ...prev, [tpKey]: !visible }));
+    };
+
     return (
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
-        <h3>{tpKey}</h3>
-        <Plot
-          useResizeHandler={false}
-          style={{ width: `${plotWidth}px`, height: `${plotHeight}px` }}
-          data={[
-            {
-              z: zData,
-              x: xLabels.map((_, i) => i),
-              y: yLabels.map((_, i) => i),
-              type: "heatmap",
-              colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
-              zmid: 0,
-              showscale: true,
-              hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
-            },
-            {
-              z: maskData,
-              x: xLabels.map((_, i) => i),
-              y: yLabels.map((_, i) => i),
-              type: "heatmap",
-              colorscale: [[0, "rgba(0,0,0,0)"], [1, "#d3d3d3"]],
-              showscale: false,
-              hoverinfo: "skip",
-              opacity: 1
-            }
-          ]}
-          layout={{
-            width: plotWidth,
-            height: plotHeight,
-            margin: { l: 180, r: 30, t: 40, b: 140 },
-            yaxis: {
-              tickvals: yLabels.map((_, i) => i),
-              ticktext: yLabels,
-              automargin: true,
-              dtick: 1,
-              constrain: 'domain',
-              ticks: "",
-            },
-            xaxis: {
-              tickvals: xLabels.map((_, i) => i),
-              ticktext: xLabels,
-              tickangle: -45,
-              automargin: true,
-              constrain: 'domain',
-              ticks: '',
-              showline: false,
-              showgrid: false,
-              zeroline: false
-            },
-            shapes,
-            annotations
-          }}
-          config={{ responsive: true }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h3 style={{ margin: 0 }}>{tpKey}</h3>
+          <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
+            {visible ? 'Hide' : 'Show'}
+          </button>
+        </div>
+
+        {visible && (
+          <Plot
+            useResizeHandler={false}
+            style={{ width: `${plotWidth}px`, height: `${plotHeight}px` }}
+            data={[
+              {
+                z: zData,
+                x: xLabels.map((_, i) => i),
+                y: yLabels.map((_, i) => i),
+                type: "heatmap",
+                colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
+                zmid: 0,
+                showscale: true,
+                hovertemplate: "%{y}<br>cluster %{x}: %{z}<extra></extra>"
+              },
+              {
+                z: maskData,
+                x: xLabels.map((_, i) => i),
+                y: yLabels.map((_, i) => i),
+                type: "heatmap",
+                colorscale: [[0, "rgba(0,0,0,0)"], [1, "#d3d3d3"]],
+                showscale: false,
+                hoverinfo: "skip",
+                opacity: 1
+              }
+            ]}
+            layout={{
+              width: plotWidth,
+              height: plotHeight,
+              margin: { l: 180, r: 30, t: 40, b: 140 },
+              yaxis: {
+                tickvals: yLabels.map((_, i) => i),
+                ticktext: yLabels,
+                automargin: true,
+                dtick: 1,
+                constrain: 'domain',
+                ticks: "",
+              },
+              xaxis: {
+                tickvals: xLabels.map((_, i) => i),
+                ticktext: xLabels,
+                tickangle: -45,
+                automargin: true,
+                constrain: 'domain',
+                ticks: '',
+                showline: false,
+                showgrid: false,
+                zeroline: false
+              },
+              shapes,
+              annotations
+            }}
+            config={{ responsive: true }}
+          />
+          )}
       </div>
     );
   };
