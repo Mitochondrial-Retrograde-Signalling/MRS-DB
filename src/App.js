@@ -372,8 +372,16 @@ function App() {
 
     return (
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <h3 style={{ margin: 0 }}>{tpKey}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
+          <h3 style={{ margin: 0 }}>
+            {tpKey}
+            <span
+              title="This heatmap shows log₂ fold change. Gray tiles represent 'ns' (not statistically significant) or No data."
+              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+            >
+              ℹ️
+            </span>
+          </h3>
           <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
             {visible ? 'Hide' : 'Show'}
           </button>
@@ -449,24 +457,34 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "1rem" }}>
+    <div style={{ padding: "1rem", paddingLeft: "5vw" }}>
       <h2>Arabidopsis Gene Expression Explorer</h2>
   
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 300px)',
-          gridTemplateRows: 'auto auto',
-          columnGap: '2rem',
-          rowGap: '0.25rem',
-          marginBottom: '1.5rem',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: '#fff',
+          zIndex: 100,
+          padding: '1rem 3rem 0.5rem 3rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '2rem',
+          alignItems: 'flex-start',
+          borderBottom: '1px solid #ddd',
         }}
       >
+
         {/* Organelle */}
-        <div style={{ gridColumn: '1 / 2', gridRow: '1' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ maxWidth: '150px', flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
             <strong>Organelle</strong>
-            <span title="Select an organelle to explore gene expression.">ℹ️</span>
+            <span
+              title="Select an organelle to explore gene expression."
+              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+            >
+              ℹ️
+            </span>
           </div>
           <div style={{ height: 56 }}>
             <Select
@@ -481,10 +499,15 @@ function App() {
         </div>
   
         {/* Genotypes */}
-        <div style={{ gridColumn: '1 / 2', gridRow: '2' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ maxWidth: '220px', flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
             <strong>Genotypes</strong>
-            <span title="Compare gene expression across selected genotypes.">ℹ️</span>
+            <span
+              title="Compare gene expression across selected genotypes."
+              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+            >
+              ℹ️
+            </span>
           </div>
           <Select
             isMulti
@@ -508,10 +531,15 @@ function App() {
         </div>
   
         {/* Genes */}
-        <div style={{ gridColumn: '2 / 3', gridRow: '1 / 3' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ maxWidth: '230px', flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
             <strong>Genes</strong>
-            <span title="Choose one or more genes from the selected organelle.">ℹ️</span>
+            <span
+              title="Choose one or more genes from the selected organelle."
+              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+            >
+              ℹ️
+            </span>
           </div>
           <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
             <Select
@@ -543,10 +571,15 @@ function App() {
         </div>
   
         {/* Cell Types */}
-        <div style={{ gridColumn: '3 / 4', gridRow: '1 / 3' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ maxWidth: '240px', flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
             <strong>Cell Types</strong>
-            <span title="Filter by specific cell types to focus your analysis.">ℹ️</span>
+            <span
+              title="Filter by specific cell types to focus your analysis."
+              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+            >
+              ℹ️
+            </span>
           </div>
           <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
             <Select
@@ -579,10 +612,15 @@ function App() {
   
         {/* Timepoint */}
         {timepoints.length > 1 && (
-          <div style={{ gridColumn: '4 / 5', gridRow: '1 / 3' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <div style={{ maxWidth: '280px', flex: '1 1 240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Timepoint</strong>
-              <span title="Select a range of timepoints to display plots.">ℹ️</span>
+              <span
+                title="Select a range of timepoints to display plots."
+                style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+              >
+                ℹ️
+              </span>
             </div>
             <Slider
               range
