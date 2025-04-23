@@ -376,40 +376,68 @@ function App() {
       const geneListData = data[tpKey]?.[selectedGeneList];
       if (!geneListData) return;
     
-      const rows = [];
+      const clusterMap = {}; // { CellType: [Cluster1, Cluster2, ...] }
+      const allPairs = [];
     
-      selectedGenes.forEach(gene => {
-        const geneData = geneListData[gene];
-        if (!geneData) return;
-    
-        selectedGenotypes.forEach(genotype => {
-          const cellMap = geneData[genotype];
-          if (!cellMap) return;
-    
-          selectedCellTypes.forEach(cellType => {
-            const clusters = cellMap[cellType];
-            if (!clusters) return;
-    
-            Object.entries(clusters).forEach(([cluster, value]) => {
-              rows.push({
-                Timepoint: tpKey,
-                Gene: gene,
-                Genotype: genotype,
-                CellType: cellType,
-                Cluster: cluster,
-                Value: value
-              });
-            });
+      [...selectedCellTypes].sort().forEach(cellType => {
+        const clusters = new Set();
+        selectedGenes.forEach(gene => {
+          selectedGenotypes.forEach(genotype => {
+            const clusterObj = geneListData?.[gene]?.[genotype]?.[cellType];
+            if (clusterObj) {
+              Object.keys(clusterObj).forEach(c => clusters.add(c));
+            }
           });
+        });
+        const clusterList = Array.from(clusters).sort();
+        clusterMap[cellType] = clusterList;
+        clusterList.forEach(c => allPairs.push([cellType, c]));
+      });
+    
+      // Header rows
+      const headerRow1 = ["Gene", "Genotype", ...allPairs.map(([ct]) => ct)];
+      const headerRow2 = ["", "", ...allPairs.map(([_, cl]) => cl)];
+    
+      // Merge info for header row 1
+      const merges = [];
+      let col = 2;
+      for (const [cellType, clusters] of Object.entries(clusterMap)) {
+        const span = clusters.length;
+        if (span > 1) {
+          merges.push({
+            s: { r: 0, c: col },
+            e: { r: 0, c: col + span - 1 }
+          });
+        }
+        col += span;
+      }
+    
+      // Fill data rows
+      const dataRows = [];
+      selectedGenes.forEach(gene => {
+        selectedGenotypes.forEach(genotype => {
+          const row = [gene, genotype];
+          allPairs.forEach(([ct, cl]) => {
+            const val = geneListData?.[gene]?.[genotype]?.[ct]?.[cl];
+            row.push(val !== undefined && val !== null && !Number.isNaN(val) ? val : "No Data");
+          });
+          dataRows.push(row);
         });
       });
     
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+      // Final sheet data with headers
+      const sheetData = [headerRow1, headerRow2, ...dataRows];
     
-      XLSX.writeFile(workbook, `${tpKey}_data.xlsx`);
+      // Create workbook
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws["!merges"] = merges;
+    
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    
+      XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
     };
+    
     
     return (
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
