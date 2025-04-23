@@ -7,13 +7,13 @@ import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
 
 function App() {
   const [data, setData] = useState({});
-  const [organelleOptions, setOrganelleOptions] = useState([]);
-  const [selectedOrganelle, setSelectedOrganelle] = useState(null);
+  const [geneListOptions, setGeneListOptions] = useState([]);
+  const [selectedGeneList, setSelectedGeneList] = useState(null);
   const [geneOptions, setGeneOptions] = useState([]);
   const [selectedGenes, setSelectedGenes] = useState([]);
   const [timepoints, setTimepoints] = useState([]);
   const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
-  const [allGenesByOrganelle, setAllGenesByOrganelle] = useState({});
+  const [allGenesByGeneList, setAllGenesByGeneList] = useState({});
   const [cellTypes, setCellTypes] = useState([]);
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
   const [genotypes, setGenotypes] = useState([]);
@@ -53,8 +53,8 @@ function App() {
       files.map(f => fetch(`/data/processed/${f}`).then(res => res.json()))
     ).then(jsons => {
       const newData = {};
-      const organelles = new Set();
-      const allGenesByOrg = {};
+      const geneLists = new Set();
+      const allGenesByGeneList = {};
       const allCellTypes = new Set();
       const allGenotypes = new Set();
       const tpMap = {};
@@ -63,14 +63,14 @@ function App() {
         const json = jsons[i];
         const tp = `${json.Timepoint}h`;
         tpMap[tp] = true;
-        newData[tp] = json.Organelle;
+        newData[tp] = json.GeneList;
 
-        Object.entries(json.Organelle).forEach(([organelle, genes]) => {
-          organelles.add(organelle);
-          if (!allGenesByOrg[organelle]) allGenesByOrg[organelle] = new Set();
+        Object.entries(json.GeneList).forEach(([geneList, genes]) => {
+          geneLists.add(geneList);
+          if (!allGenesByGeneList[geneList]) allGenesByGeneList[geneList] = new Set();
 
           Object.entries(genes).forEach(([gene, geneData]) => {
-            allGenesByOrg[organelle].add(gene);
+            allGenesByGeneList[geneList].add(gene);
             Object.entries(geneData).forEach(([genotype, cellMap]) => {
               if (genotype === "Details") return;
               allGenotypes.add(genotype);
@@ -89,21 +89,21 @@ function App() {
       setData(newData);
       setTimepoints(numericTPs);
       setSelectedTimepointRange([numericTPs[0], numericTPs[numericTPs.length - 1]]);
-      setOrganelleOptions(Array.from(organelles).sort());
-      setAllGenesByOrganelle(allGenesByOrg);
+      setGeneListOptions(Array.from(geneLists).sort());
+      setAllGenesByGeneList(allGenesByGeneList);
       setCellTypes(Array.from(allCellTypes).sort());
       setGenotypes(Array.from(allGenotypes).sort());
     });
   }, []);
 
-  // This is for showing the genes specific to the selected Organelle
+  // This is for showing the genes specific to the selected GeneList
   useEffect(() => {
-    if (selectedOrganelle && allGenesByOrganelle[selectedOrganelle]) {
-      const genes = Array.from(allGenesByOrganelle[selectedOrganelle]).sort();
+    if (selectedGeneList && allGenesByGeneList[selectedGeneList]) {
+      const genes = Array.from(allGenesByGeneList[selectedGeneList]).sort();
       setGeneOptions(genes);
       setSelectedGenes([]);
     }
-  }, [selectedOrganelle, allGenesByOrganelle]);
+  }, [selectedGeneList, allGenesByGeneList]);
 
   // This resizes the heatmap upon new selection
   // It has some time delay to avoid early rendering
@@ -111,16 +111,16 @@ function App() {
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
     }, 150);
-  }, [selectedGenes, selectedOrganelle, selectedGenotypes, selectedCellTypes]);
+  }, [selectedGenes, selectedGeneList, selectedGenotypes, selectedCellTypes]);
 
-  // Sync organelle and others first — but NOT genes
+  // Sync geneList and others first — but NOT genes
   useEffect(() => {
     if (
-      organelleOptions.length === 0 ||
+      geneListOptions.length === 0 ||
       genotypes.length === 0 ||
       cellTypes.length === 0 ||
       timepoints.length === 0 ||
-      Object.keys(allGenesByOrganelle).length === 0
+      Object.keys(allGenesByGeneList).length === 0
     ) return;
 
     if (skipNextSync.current) {
@@ -129,7 +129,7 @@ function App() {
     }
 
     const params = new URLSearchParams(location.search);
-    const org = params.get("organelle") || organelleOptions[0];
+    const org = params.get("geneList") || geneListOptions[0];
     const cellTypesParsed = params.get("cellTypes")?.split(",") || [cellTypes[0]];
     const genotypesParsed = params.get("genotypes")?.split(",") || [genotypes[0]];
 
@@ -138,16 +138,16 @@ function App() {
       ? tpRange
       : [timepoints[0], timepoints[timepoints.length - 1]];
 
-    setSelectedOrganelle(org);
+    setSelectedGeneList(org);
     setSelectedCellTypes(cellTypesParsed);
     setSelectedGenotypes(genotypesParsed);
     setSelectedTimepointRange(validRange);
   }, [
     location.search,
-    organelleOptions,
+    geneListOptions,
     genotypes,
     cellTypes,
-    allGenesByOrganelle,
+    allGenesByGeneList,
     timepoints
   ]);
 
@@ -164,7 +164,7 @@ function App() {
   // Sync state → URL only if meaningful values are selected
   useEffect(() => {
     if (
-      !selectedOrganelle ||
+      !selectedGeneList ||
       selectedGenes.length === 0 ||
       selectedGenotypes.length === 0 ||
       selectedCellTypes.length === 0 ||
@@ -174,7 +174,7 @@ function App() {
     }
 
     const params = new URLSearchParams();
-    if (selectedOrganelle) params.set("organelle", selectedOrganelle);
+    if (selectedGeneList) params.set("geneList", selectedGeneList);
     if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
     if (selectedGenotypes.length) params.set("genotypes", selectedGenotypes.join(","));
     if (selectedCellTypes.length) params.set("cellTypes", selectedCellTypes.join(","));
@@ -188,7 +188,7 @@ function App() {
       navigate({ search: newSearch }, { replace: true });
     }
   }, [
-    selectedOrganelle,
+    selectedGeneList,
     selectedGenes,
     selectedGenotypes,
     selectedCellTypes,
@@ -200,12 +200,12 @@ function App() {
   // Renders plot for selected timepoint/s
   const renderPlot = (tp) => {
     const tpKey = `${tp}h`;
-    const organelleData = data[tpKey]?.[selectedOrganelle];
-    if (!organelleData) return null;
+    const geneListData = data[tpKey]?.[selectedGeneList];
+    if (!geneListData) return null;
 
     const xMetaSet = new Set();
     selectedGenes.forEach(gene => {
-      const geneData = organelleData[gene];
+      const geneData = geneListData[gene];
       if (!geneData) return;
       selectedGenotypes.forEach(genotype => {
         const cellMap = geneData[genotype] || {};
@@ -241,7 +241,7 @@ function App() {
 
         xMeta.forEach(key => {
           const [cellType, cluster] = key.split("||");
-          const val = organelleData[gene]?.[genotype]?.[cellType]?.[cluster];
+          const val = geneListData[gene]?.[genotype]?.[cellType]?.[cluster];
         
           if (val === "ns") {
             zRow.push(NaN);              // Still not plottable
@@ -484,20 +484,20 @@ function App() {
             alignItems: 'flex-start',
           }}
         >
-          {/* Organelle */}
+          {/* GeneList */}
           <div style={{ maxWidth: '150px', flex: '1 1 240px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-              <strong>Organelle</strong>
-              <span title="Select an organelle to explore gene expression." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
+              <strong>Gene List</strong>
+              <span title="Select a Gene List to explore gene expression." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
                 ℹ️
               </span>
             </div>
             <div style={{ height: 56 }}>
               <Select
-                options={organelleOptions.map(o => ({ value: o, label: o }))}
-                value={selectedOrganelle ? { value: selectedOrganelle, label: selectedOrganelle } : null}
-                onChange={opt => setSelectedOrganelle(opt?.value || null)}
-                placeholder="Search organelle..."
+                options={geneListOptions.map(o => ({ value: o, label: o }))}
+                value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
+                onChange={opt => setSelectedGeneList(opt?.value || null)}
+                placeholder="Search Gene List..."
                 isSearchable
                 styles={{ container: base => ({ ...base, width: '100%' }) }}
               />
@@ -537,7 +537,7 @@ function App() {
           <div style={{ maxWidth: '230px', flex: '1 1 240px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Genes</strong>
-              <span title="Choose one or more genes from the selected organelle." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
+              <span title="Choose one or more genes from the selected geneList." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
                 ℹ️
               </span>
             </div>
@@ -549,7 +549,7 @@ function App() {
                 onChange={opts => setSelectedGenes(opts.map(o => o.value))}
                 placeholder="Select genes"
                 isSearchable
-                isDisabled={!selectedOrganelle}
+                isDisabled={!selectedGeneList}
                 styles={{
                   container: base => ({ ...base, width: '100%' }),
                   control: base => ({
