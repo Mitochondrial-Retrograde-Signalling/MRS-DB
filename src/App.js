@@ -4,6 +4,7 @@ import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
+import * as XLSX from "xlsx";
 
 function App() {
   const [data, setData] = useState({});
@@ -371,35 +372,43 @@ function App() {
     };
 
     const downloadTPData = () => {
-      const exportData = {};
+      const tpKey = `${tp}h`;
       const geneListData = data[tpKey]?.[selectedGeneList];
       if (!geneListData) return;
+    
+      const rows = [];
     
       selectedGenes.forEach(gene => {
         const geneData = geneListData[gene];
         if (!geneData) return;
     
-        exportData[gene] = {};
         selectedGenotypes.forEach(genotype => {
           const cellMap = geneData[genotype];
           if (!cellMap) return;
     
-          exportData[gene][genotype] = {};
           selectedCellTypes.forEach(cellType => {
             const clusters = cellMap[cellType];
             if (!clusters) return;
-            exportData[gene][genotype][cellType] = clusters;
+    
+            Object.entries(clusters).forEach(([cluster, value]) => {
+              rows.push({
+                Timepoint: tpKey,
+                Gene: gene,
+                Genotype: genotype,
+                CellType: cellType,
+                Cluster: cluster,
+                Value: value
+              });
+            });
           });
         });
       });
     
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${tpKey}_data.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    
+      XLSX.writeFile(workbook, `${tpKey}_data.xlsx`);
     };
     
     return (
