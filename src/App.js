@@ -370,23 +370,86 @@ function App() {
       setPlotVisibility(prev => ({ ...prev, [tpKey]: !visible }));
     };
 
+    const downloadTPData = () => {
+      const exportData = {};
+      const geneListData = data[tpKey]?.[selectedGeneList];
+      if (!geneListData) return;
+    
+      selectedGenes.forEach(gene => {
+        const geneData = geneListData[gene];
+        if (!geneData) return;
+    
+        exportData[gene] = {};
+        selectedGenotypes.forEach(genotype => {
+          const cellMap = geneData[genotype];
+          if (!cellMap) return;
+    
+          exportData[gene][genotype] = {};
+          selectedCellTypes.forEach(cellType => {
+            const clusters = cellMap[cellType];
+            if (!clusters) return;
+            exportData[gene][genotype][cellType] = clusters;
+          });
+        });
+      });
+    
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${tpKey}_data.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    
     return (
       <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
-          <h3 style={{ margin: 0 }}>
-            {tpKey}
-            <span
-              title="This heatmap shows log₂ fold change. Gray tiles represent 'ns' (not statistically significant) or No data."
-              style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
-            >
-              ℹ️
-            </span>
-          </h3>
-          <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
-            {visible ? 'Hide' : 'Show'}
+        {/* Header row with title, show/hide toggle, and download button */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '2rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {/* Left side: Timepoint label + toggle button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>
+              {tpKey}
+              <span
+                title="This heatmap shows log₂ fold change. Gray tiles represent 'ns' (not statistically significant) or No data."
+                style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
+              >
+                ℹ️
+              </span>
+            </h3>
+            <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
+              {visible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+    
+          {/* Right side: Download button */}
+          <button
+            onClick={downloadTPData}
+            style={{
+              marginLeft: 'auto',
+              marginRight: '2rem',
+              padding: '0.4rem 0.8rem',
+              backgroundColor: '#3276db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            Download {tpKey} Data
           </button>
         </div>
-
+    
+        {/* Plot block */}
         {visible && (
           <Plot
             useResizeHandler={false}
@@ -407,7 +470,6 @@ function App() {
                     font: { size: 12, weight: "bold" }
                   }
                 },
-                z: zData,
                 hovertext: hoverData,
                 hovertemplate: "%{y}<br>%{x}: %{hovertext}<extra></extra>",
               },
@@ -451,9 +513,10 @@ function App() {
             }}
             config={{ responsive: true }}
           />
-          )}
+        )}
       </div>
     );
+       
   };
 
   return (
