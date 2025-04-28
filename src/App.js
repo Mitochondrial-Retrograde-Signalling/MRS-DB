@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import Select from "react-select";
+import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
 import * as XLSX from "xlsx";
-import createPlotlyComponent from 'react-plotly.js/factory';
-import Plotly from 'plotly.js-basic-dist';
-const Plot = createPlotlyComponent(Plotly);
 
 function App() {
   const [data, setData] = useState({});
@@ -34,7 +32,7 @@ function App() {
     "Epidermis": "Epi-<br>dermis",
     "G2/M phase": "G2/m<br>phase",
     "Leaf guard cell": "Leaf<br>guard<br>cell",
-    "Leaf pavement cell": "Leaf<br>pave-<br>ment cell",
+    "Leaf pavement cell": "Leaf<br>pave-<br>ment\cell",
     "Mesophyll": "Meso<br>phyll",
     "Phloem parenchyma": "Phloem<br>paren-<br>chyma",
     "S phase": "S phase",
@@ -243,7 +241,7 @@ function App() {
         const hoverTextRow = [];
 
         xMeta.forEach(key => {
-          const [, cluster] = key.split("||");
+          const [cellType, cluster] = key.split("||");
           const val = geneListData[gene]?.[genotype]?.[cellType]?.[cluster];
         
           if (val === "ns") {
@@ -461,7 +459,7 @@ function App() {
                 title="This heatmap shows log₂ fold change. Gray tiles represent 'ns' (not statistically significant) or No data."
                 style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
               >
-                <span role="img" aria-label="Info">ℹ️</span>
+                ℹ️
               </span>
             </h3>
             <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
@@ -591,7 +589,7 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Gene List</strong>
               <span title="Select a Gene List to explore gene expression." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                <span role="img" aria-label="Info">ℹ️</span>
+                ℹ️
               </span>
             </div>
             <div style={{ height: 56 }}>
@@ -611,7 +609,7 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Genotypes</strong>
               <span title="Compare gene expression across selected genotypes." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                <span role="img" aria-label="Info">ℹ️</span>
+                ℹ️
               </span>
             </div>
             <Select
@@ -640,7 +638,7 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Genes</strong>
               <span title="Choose one or more genes from the selected geneList." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                <span role="img" aria-label="Info">ℹ️</span>
+                ℹ️
               </span>
             </div>
             <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
@@ -677,7 +675,7 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Cell Types</strong>
               <span title="Filter by specific cell types to focus your analysis." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                <span role="img" aria-label="Info">ℹ️</span>
+                ℹ️
               </span>
             </div>
             <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
@@ -715,7 +713,7 @@ function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
                 <strong>Timepoint</strong>
                 <span title="Select a range of timepoints to display plots." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                  <span role="img" aria-label="Info">ℹ️</span>
+                  ℹ️
                 </span>
               </div>
               <Slider
@@ -761,7 +759,7 @@ function App() {
               cursor: 'pointer'
             }}
           >
-            <span role="img" aria-label="Scroll to top">⮝</span>
+            ⮝
           </button>
         )}
       </div>
