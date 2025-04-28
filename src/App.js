@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import Select from "react-select";
-import Plot from "react-plotly.js";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
 import * as XLSX from "xlsx";
+import createPlotlyComponent from 'react-plotly.js/factory';
+import Plotly from 'plotly.js-basic-dist';
+const Plot = createPlotlyComponent(Plotly);
 
 function App() {
   const [data, setData] = useState({});
