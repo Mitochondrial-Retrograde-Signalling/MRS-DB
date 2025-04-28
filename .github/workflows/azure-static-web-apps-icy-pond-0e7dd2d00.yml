@@ -30,7 +30,7 @@ jobs:
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "/" # App source code path
           api_location: "" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
+          # output_location: "build" # Built app content directory - optional
           #### Custom build command with increased heap size ####
           app_build_command: "NODE_OPTIONS=--max-old-space-size=4096 npm run build"
           ###### End of Repository/Build Configurations ######
