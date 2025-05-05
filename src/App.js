@@ -5,6 +5,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
 import * as XLSX from "xlsx";
+import { matchSorter } from 'match-sorter';
 
 function App() {
   const [data, setData] = useState({});
@@ -21,7 +22,7 @@ function App() {
   const [selectedGenotypes, setSelectedGenotypes] = useState([]);
   const [plotVisibility, setPlotVisibility] = useState({});
   const [showScrollUp, setShowScrollUp] = useState(false);
-
+  const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
   const skipNextSync = useRef(false);
@@ -59,6 +60,7 @@ function App() {
       const allCellTypes = new Set();
       const allGenotypes = new Set();
       const tpMap = {};
+      const geneDetailsByList = {};
 
       files.forEach((file, i) => {
         const json = jsons[i];
@@ -69,9 +71,22 @@ function App() {
         Object.entries(json.GeneList).forEach(([geneList, genes]) => {
           geneLists.add(geneList);
           if (!allGenesByGeneList[geneList]) allGenesByGeneList[geneList] = new Set();
+          if (!geneDetailsByList[geneList]) geneDetailsByList[geneList] = {};
 
           Object.entries(genes).forEach(([gene, geneData]) => {
             allGenesByGeneList[geneList].add(gene);
+
+            // Get gene name from Details block
+            const geneName = geneData?.Details?.GeneName || '';
+            const label = geneName ? `${gene} (${geneName})` : gene;
+
+            // Store in details map for later fuzzy search
+            geneDetailsByList[geneList][gene] = {
+              id: gene,
+              name: geneName,
+              label
+            };
+
             Object.entries(geneData).forEach(([genotype, cellMap]) => {
               if (genotype === "Details") return;
               allGenotypes.add(genotype);
@@ -92,6 +107,7 @@ function App() {
       setSelectedTimepointRange([numericTPs[0], numericTPs[numericTPs.length - 1]]);
       setGeneListOptions(Array.from(geneLists).sort());
       setAllGenesByGeneList(allGenesByGeneList);
+      setGeneDetailsByGeneList(geneDetailsByList);
       setCellTypes(Array.from(allCellTypes).sort());
       setGenotypes(Array.from(allGenotypes).sort());
     });
@@ -100,11 +116,15 @@ function App() {
   // This is for showing the genes specific to the selected GeneList
   useEffect(() => {
     if (selectedGeneList && allGenesByGeneList[selectedGeneList]) {
-      const genes = Array.from(allGenesByGeneList[selectedGeneList]).sort();
-      setGeneOptions(genes);
+      const geneDetails = geneDetailsByGeneList[selectedGeneList] || {};
+      const options = Object.values(geneDetails).map(({ id, label }) => ({
+        value: id,
+        label: label || id
+      }));
+      setGeneOptions(options);
       setSelectedGenes([]);
     }
-  }, [selectedGeneList, allGenesByGeneList]);
+  }, [selectedGeneList, allGenesByGeneList, geneDetailsByGeneList]);
 
   // This resizes the heatmap upon new selection
   // It has some time delay to avoid early rendering
@@ -642,11 +662,21 @@ function App() {
               </span>
             </div>
             <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
+              {console.log("Gene options:", geneOptions)}
               <Select
                 isMulti
-                options={geneOptions.map(g => ({ value: g, label: g }))}
-                value={selectedGenes.map(g => ({ value: g, label: g }))}
-                onChange={opts => setSelectedGenes(opts.map(o => o.value))}
+                options={(geneOptions || []).map(g =>
+                  typeof g === "string" ? { value: g, label: g } : g
+                )}
+                value={selectedGenes.map(g => {
+                  const match = geneOptions.find(o => o.value === g);
+                  return match || { value: g, label: g };
+                })}
+                onChange={(opts) => setSelectedGenes((opts || []).map(o => o.value))}
+                filterOption={(option, inputValue) =>
+                  matchSorter([option], inputValue, { keys: ['label'] }).length > 0
+                  // option.label.toLowerCase().includes(inputValue.toLowerCase())
+                }
                 placeholder="Select genes"
                 isSearchable
                 isDisabled={!selectedGeneList}
