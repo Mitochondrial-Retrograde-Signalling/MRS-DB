@@ -13,3 +13,7 @@ papermill public/scripts/preprocess.ipynb \
     -p filename "1h"
 
 ```
+
+```bash
+npm run build
+```
