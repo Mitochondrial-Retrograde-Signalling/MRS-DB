@@ -26,7 +26,8 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const skipNextSync = useRef(false);
-
+  const [showDescriptions, setShowDescriptions] = useState(false);
+  
   // This is used to avoid label overflow
   const wrappedLabels = {
     "Companion cell": "Companion<br>cell",
@@ -79,12 +80,14 @@ function App() {
             // Get gene name from Details block
             const geneName = geneData?.Details?.GeneName || '';
             const label = geneName ? `${gene} (${geneName})` : gene;
+            const description = geneData?.Details?.Description || '';
 
             // Store in details map for later fuzzy search
             geneDetailsByList[geneList][gene] = {
               id: gene,
               name: geneName,
-              label
+              label,
+              description
             };
 
             Object.entries(geneData).forEach(([genotype, cellMap]) => {
@@ -700,6 +703,88 @@ function App() {
             </div>
           </div>
   
+          {/* Sidebar Toggle Tab */}
+          {selectedGenes.length > 0 && (
+            <div
+              onClick={() => setShowDescriptions(prev => !prev)}
+              style={{
+                position: 'fixed',
+                top: '40%',
+                right: showDescriptions ? '350px' : 0,
+                zIndex: 1000,
+                width: '40px',
+                height: '160px',
+                backgroundColor: '#3276db',
+                color: 'white',
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                cursor: 'pointer',
+                borderTopRightRadius: '6px',
+                borderBottomRightRadius: '6px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                transition: 'right 0.3s ease-in-out',
+                userSelect: 'none'
+              }}
+            >
+              {showDescriptions ? 'Hide Gene Description' : 'Show Gene Description'}
+            </div>
+          )}
+
+          {/* Sidebar Drawer */}
+          {selectedGenes.length > 0 && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: showDescriptions ? 0 : '-320px',
+                height: '100vh',
+                width: showDescriptions ? '320px' : '40px',
+                backgroundColor: '#f7f5ed',
+                borderLeft: '1px solid #ccc',
+                boxShadow: '-2px 0 6px rgba(0,0,0,0.1)',
+                padding: '1rem',
+                overflowY: 'auto',
+                zIndex: 1001,
+                transition: 'right 0.3s ease-in-out'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0 }}>Gene Descriptions</h4>
+                <button
+                  onClick={() => setShowDescriptions(false)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: '1.2rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <hr />
+
+              {selectedGenes.map(gene => {
+                const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
+                return (
+                  <div key={gene} style={{ marginBottom: '1rem' }}>
+                    <strong>{details?.label}</strong>
+                    <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                      {details?.description || "No description available."}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+
           {/* Cell Types */}
           <div style={{ maxWidth: '240px', flex: '1 1 240px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
