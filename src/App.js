@@ -657,10 +657,10 @@ function App() {
           </div>
   
           {/* Genes */}
-          <div style={{ maxWidth: '230px', flex: '1 1 240px' }}>
+          <div style={{ maxWidth: '300px', flex: '1 1 240px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>Genes</strong>
-              <span title="Choose one or more genes from the selected geneList." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
+              <span title="Choose one or more genes from the selected Gene List." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
                 ℹ️
               </span>
             </div>
@@ -847,6 +847,11 @@ function App() {
               />
             </div>
           )}
+        </div>
+        {/* Footer message */}
+        <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#555', paddingTop: '0.5rem' }}>
+          This data is from the study <em>“Title placeholder lorem ipsum thingy”</em>. If you find this helpful, you may cite as:  
+          <strong> Surname J. et al., 2025. Article title bleep bloop. Journal title. Volume. Series. doi.</strong>
         </div>
       </div>
   
