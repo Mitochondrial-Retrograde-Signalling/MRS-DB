@@ -1,38 +1,111 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.app-wrapper {
   display: flex;
   flex-direction: column;
+  height: 100vh;
+}
+
+.top-bar {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  background-color: #003f88; /* truth-seeking blue */
   color: white;
+  height: 70px;
+  padding: 0 20px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
-.App-link {
-  color: #61dafb;
+.zju-logo {
+  height: 50px;
+  margin-right: 15px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.zju-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.app-container {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #f4f4f4;
+  padding: 20px;
+  border-right: 1px solid #ddd;
+}
+
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.search-section input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 40px;
+  background-color: #fff;
+}
+
+.toggle-button {
+  position: absolute;
+  top: 20px;
+  left: 260px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ddd;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 10;
+  transition: left 0.3s ease;
+}
+
+.toggle-button.collapsed {
+  left: 10px;
+}
+
+.pill-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pill {
+  background-color: #e6f0ff;
+  color: #003366;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid #b0c8ff;
+  transition: background 0.2s ease;
+}
+
+.pill:hover {
+  background-color: #d2e4ff;
+}
+
+.pill-x {
+  margin-left: 6px;
+  font-weight: bold;
+  color: #666;
+  font-size: 1rem;
 }
