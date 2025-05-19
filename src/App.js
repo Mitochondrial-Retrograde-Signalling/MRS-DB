@@ -3,7 +3,7 @@ import Select from 'react-select';
 import { matchSorter } from 'match-sorter';
 import './App.css';
 import { toast } from 'react-toastify';
-
+import GeneExpressionTable from './components/GeneExpressionTable';
 
 function App() {
   const [geneListOptions, setGeneListOptions] = useState([]);
@@ -347,10 +347,25 @@ function App() {
 
         <div className="main-content">
           <h2>Main Content Area</h2>
-          <p>Timepoints: {timepoints.join(', ')}h</p>
-          <p>Gene List: {selectedGeneList || 'None selected'}</p>
-          <p>Genotype: {selectedGenotype || 'None selected'}</p>
+
+          {selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList && (
+            <GeneExpressionTable
+              selectedGenes={selectedGenes}
+              selectedGenotype={selectedGenotype}
+              selectedCellTypes={selectedCellTypes}
+              geneDetailsByGeneList={geneDetailsByGeneList}
+              selectedGeneList={selectedGeneList}
+              data={data}
+            />
+          )}
+
+          {selectedGenes.length === 0 && (
+            <p style={{ fontStyle: 'italic', color: '#888' }}>
+              Please select at least one gene, genotype, and cell type to view the table.
+            </p>
+          )}
         </div>
+
       </div>
     </div>
   );
