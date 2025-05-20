@@ -1,4 +1,4 @@
-// Revised GeneExpressionTable using tanstack-table-header-rowspan for proper rowspan on Gene and Genotype
+// Revised GeneExpressionTable using tanstack-table-header-rowspan for proper rowspan on Gene and Genotype with sticky first two columns
 import React, { useMemo } from 'react';
 import {
   useReactTable,
@@ -13,7 +13,6 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
   const tpKey = `${Object.keys(data)[0]}`;
   const geneListData = data[tpKey]?.[selectedGeneList];
 
-  // Compute maxAbs from actual values in data
   const values = [];
   selectedGenes.forEach(gene => {
     selectedGenotype.forEach(gt => {
@@ -110,82 +109,119 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
     isNaN(value) ? value : parseFloat(value).toFixed(2);
 
   return (
-    <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-      <thead>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              const rowSpan = tableHeaderRowSpan(header);
-              if (!rowSpan) return null;
+    // <div style={{ overflowX: 'auto', marginTop: '1rem', maxWidth: '100%' }}>
+    <div style={{ overflowY: 'auto', maxHeight: '500px' }}>
+      <div style={{ minWidth: 'max-content' }}>
+        <table style={{ borderCollapse: 'collapse', width: 'auto' }}>
+        <thead>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const rowSpan = tableHeaderRowSpan(header);
+                if (!rowSpan) return null;
 
-              return (
-                <th
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  rowSpan={rowSpan}
-                  style={{
-                    width: header.getSize?.() ?? 'auto',
-                    border: '1px solid #ddd',
-                    background: '#f0f0f0',
-                    padding: '8px',
-                    textAlign: 'center',
-                    verticalAlign: 'middle',
-                  }}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-        <tbody>
-          {table.getRowModel().rows.map(row => {
-            const borderTop = row.original.isFirst ? '3px solid black' : '1px solid black';
-            const borderBottom = row.original.isLast ? '3px solid black' : '1px solid black';
-            const borderLR = '2px solid black';
-            const groupRowStyle = {
-              borderTop,
-              borderBottom,
-              borderLeft: borderLR,
-              borderRight: borderLR
-            };
+                const isStickyCol = ['gene', 'genotype'].includes(header.column.id);
+                const isClusterHeader = header.depth === 2;
+                const stickyTop = header.depth === 1 ? 0 : 39;
 
-            return (
-              <tr key={row.id}>
-                {row.original.isFirst && (
-                  <td
-                    rowSpan={row.original.rowSpan}
+                return (
+                  <th
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    rowSpan={rowSpan}
                     style={{
-                      ...groupRowStyle,
-                      fontWeight: 'bold',
+                      border: '1px solid #ccc',
+                      background: '#f0f0f0',
+                      backgroundColor: '#f0f0f0',
+                      padding: '8px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      whiteSpace: 'nowrap',
+                      fontStyle: isClusterHeader ? 'italic' : 'bold',
+                      fontWeight: isClusterHeader ? 400 : 'bold',
+                      top: stickyTop,
+                      position: 'sticky',
+                      left: header.column.id === 'gene' ? 0 : header.column.id === 'genotype' ? 120 : undefined,
+                      zIndex: isStickyCol ? 3 : 2,
                       backgroundColor: '#f0f0f0'
                     }}
                   >
-                    {row.original.gene}
-                  </td>
-                )}
-                <td style={{ ...groupRowStyle, fontStyle: 'italic' }}>{row.original.genotype}</td>
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                );
+              })}
+            </tr>
+          ))}
+        </thead>
 
-                {row.getVisibleCells()
-                  .filter(cell => !['gene', 'genotype'].includes(cell.column.id))
-                  .map(cell => (
-                    <td
-                      key={cell.id}
+          <tbody>
+            {table.getRowModel().rows.map(row => {
+              const borderTop = row.original.isFirst ? '2px solid black' : '1px solid #b0b0b0';
+              const borderBottom = row.original.isLast ? '2px solid black' : '1px solid #b0b0b0';
+              const borderLR = '1px solid black';
+              const groupRowStyle = {
+                borderTop,
+                borderBottom,
+                borderLeft: borderLR,
+                borderRight: borderLR,
+                whiteSpace: 'nowrap',
+                width: '120px'
+              };
+
+              return (
+                <tr key={row.id}>
+                  {row.original.isFirst && (
+                    <td //Gene column
+                      rowSpan={row.original.rowSpan}
                       style={{
                         ...groupRowStyle,
-                        ...generateBackgroundColor(cell.getValue())
+                        fontWeight: 'bold',
+                        backgroundColor: '#f0f0f0',
+                        position: 'sticky',
+                        textAlign: 'center',
+                        height: '80px',
+                        left: 0,
+                        zIndex: 1,
                       }}
                     >
-                      {roundedValue(cell.getValue())}
+                      {row.original.gene}
                     </td>
-                  ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  )}
+                  <td // Genotype column
+                    style={{
+                      ...groupRowStyle,
+                      fontStyle: 'italic',
+                      position: 'sticky',
+                      textAlign: 'left',
+                      left: 120,
+                      paddingLeft: '1rem',
+                      zIndex: 1,
+                      backgroundColor: '#f0f0f0',
+                    }}
+                  >
+                    {row.original.genotype}
+                  </td>
+
+                  {row.getVisibleCells()
+                    .filter(cell => !['gene', 'genotype'].includes(cell.column.id))
+                    .map(cell => (
+                      <td // log fold change
+                        key={cell.id}
+                        style={{
+                          textAlign: 'center',
+                          ...groupRowStyle,
+                          ...generateBackgroundColor(cell.getValue())
+                        }}
+                      >
+                        {roundedValue(cell.getValue())}
+                      </td>
+                    ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
