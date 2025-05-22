@@ -1,3 +1,9 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .app-wrapper {
   display: flex;
   flex-direction: column;
@@ -29,16 +35,16 @@
 
 .app-container {
   display: flex;
-  flex-direction: row;
-  height: calc(100vh - 70px);
+  flex: 1;
+  overflow: hidden; /* Prevent scroll on container */
 }
 
 .sidebar {
   width: 280px;
-  transition: width 0.3s ease;
-  overflow: hidden;
-  background-color: #f9f9f9;
+  flex-shrink: 0;
   padding: 1rem;
+  background-color: #f9f9f9;
+  overflow-y: auto;
 }
 
 .sidebar.collapsed {
@@ -64,8 +70,14 @@
 
 .main-content {
   flex: 1;
-  padding: 1rem;
-  overflow-x: auto;
+  overflow: hidden; /* ✅ Prevent outer scroll bar */
+  display: flex;
+  flex-direction: column;
+}
+
+.table-container {
+  flex: 1;
+  overflow: auto;
 }
 
 .tab-bar {

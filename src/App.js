@@ -344,6 +344,7 @@ function App() {
 
 
         <div className="main-content">
+        <h2>Main Content Area</h2>
           {timepoints.length > 0 && (
             <div className="tab-bar">
               {timepoints.map(tp => {
@@ -360,8 +361,6 @@ function App() {
               })}
             </div>
           )}
-          <h2>Main Content Area</h2>
-
           {selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList && (
             <GeneExpressionTable
               selectedGenes={selectedGenes}
@@ -372,7 +371,7 @@ function App() {
               data={{ [selectedTimepoint]: data[selectedTimepoint] }}
             />
           )}
-
+          
           {selectedGenes.length === 0 && (
             <p style={{ fontStyle: 'italic', color: '#888' }}>
               Please select at least one gene, genotype, and cell type to view the table.

@@ -137,10 +137,9 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
     isNaN(value) ? value : parseFloat(value).toFixed(2);
 
   return (
-    // <div style={{ overflowX: 'auto', marginTop: '1rem', maxWidth: '100%' }}>
-    <div style={{ overflowY: 'auto', maxHeight: '500px' }}>
-      <div style={{ minWidth: 'max-content' }}>
-        <table style={{ borderCollapse: 'collapse', width: 'auto' }}>
+    <div className="table-container">
+      <div style={{ minWidth: 'max-content', position: 'relative', padding: '0 2rem' }}>
+        <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 'max-content' }}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -171,7 +170,10 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
                       position: 'sticky',
                       left: header.column.id === 'gene' ? 0 : header.column.id === 'genotype' ? 120 : undefined,
                       zIndex: isStickyCol ? 3 : 2,
-                      backgroundColor: '#f0f0f0'
+                      backgroundColor: '#f0f0f0',
+                      ...(isClusterHeader && !isStickyCol
+                        ? { width: '100px', minWidth: '100px', maxWidth: '100px' }
+                        : {})
                     }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -237,6 +239,9 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
                         key={cell.id}
                         style={{
                           textAlign: 'center',
+                          minWidth: '100px',
+                          maxWidth: '100px',
+                          width: '100px',
                           ...groupRowStyle,
                           ...(cell.getValue() === 'no data'
                             ? {
