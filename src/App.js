@@ -198,7 +198,7 @@ function App() {
 
           {sidebarVisible && (
             <>
-              <h2>Filter Search</h2>
+              <h2 style={{ textAlign: 'center' }}>Filter Search</h2>
 
               {/* Gene List Dropdown */}
               <div className="search-section">
@@ -414,7 +414,7 @@ function App() {
         </div>
 
 
-        <div className="main-content">
+        <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
         {/* <h2>Main Content Area</h2> */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
         <button
@@ -491,58 +491,50 @@ function App() {
             </p>
           )}
         </div>
-        {showDescriptions && (
-          <div className="description-sidebar" style={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            width: '320px',
-            height: '100%',
-            backgroundColor: '#f7f9fb',
-            padding: '1rem',
-            boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
-            overflowY: 'auto',
-            zIndex: 1000
-          }}>
-            <div style={{
+        <div
+          className={`description-sidebar ${showDescriptions ? 'visible' : 'hidden'}`}
+        >
+          <div
+            style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: '1rem',
-              borderBottom: '2px solid #ccc'
-            }}>
-              <h3 style={{ margin: 0 }}>Gene Descriptions</h3>
-              <button
-                onClick={() => setShowDescriptions(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {selectedGenes.map(gene => {
-                const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
-                return (
-                  <li key={gene} style={{ marginBottom: '1rem' }}>
-                    <strong>{details?.label || gene}</strong>
-                    <p style={{ fontSize: '0.85rem', color: '#555' }}>
-                      {details?.description || 'No description available.'}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
+              borderBottom: '2px solid #ccc',
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Gene Descriptions</h3>
+            <button
+              onClick={() => setShowDescriptions(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                color: '#666',
+              }}
+              title="Close"
+            >
+              ✕
+            </button>
           </div>
-        )}
+
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {selectedGenes.map((gene) => {
+              const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
+              return (
+                <li key={gene} style={{ marginBottom: '1rem' }}>
+                  <strong>{details?.label || gene}</strong>
+                  <p style={{ fontSize: '0.85rem', color: '#555' }}>
+                    {details?.description || 'No description available.'}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
 
       </div>
     </div>

@@ -14,7 +14,7 @@ html, body, #root {
 .top-bar {
   display: flex;
   align-items: center;
-  background-color: #003f88; /* truth-seeking blue */
+  background-color: #003f88;
   color: white;
   height: 70px;
   padding: 0 20px;
@@ -36,20 +36,59 @@ html, body, #root {
 .app-container {
   display: flex;
   flex: 1;
-  overflow: hidden; /* Prevent scroll on container */
+  overflow: hidden;
+  position: relative;
 }
 
+/* === Sidebar Slide-In/Out === */
 .sidebar {
   width: 280px;
-  flex-shrink: 0;
+  transition: width 0.3s ease, padding 0.3s ease;
   padding: 1rem;
   background-color: #f9f9f9;
   overflow-y: auto;
+  z-index: 100;
 }
 
 .sidebar.collapsed {
   width: 40px;
   padding: 1rem 6px;
+}
+
+/* === Toggle Button Fixed Outside Sidebar === */
+.toggle-button {
+  position: fixed;
+  top: 80px;
+  left: 50px;
+  transform: translateX(-50%);
+  background-color: #003f88;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 200;
+}
+
+.sidebar.collapsed ~ .toggle-button {
+  left: 40px;
+}
+
+.toggle-button:hover {
+  background-color: #0059b3;
+  transform: scale(1.05);
+}
+
+.toggle-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #80bdff;
 }
 
 .search-section {
@@ -68,12 +107,19 @@ html, body, #root {
   box-sizing: border-box;
 }
 
+/* === Main Content Area === */
 .main-content {
   flex: 1;
-  overflow: hidden; /* ✅ Prevent outer scroll bar */
+  transition: all 0.3s ease;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
+
+.main-content.expanded {
+  margin-left: 40px;
+}
+
 
 .table-container {
   flex: 1;
@@ -115,60 +161,6 @@ html, body, #root {
   box-shadow: 0 3px 6px rgba(0, 63, 136, 0.3);
 }
 
-.toggle-button {
-  background-color: #003f88;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  margin-bottom: 12px;
-  outline: none;
-  appearance: none;
-}
-
-.toggle-button:hover {
-  background-color: #0059b3;
-  transform: scale(1.05);
-}
-
-.toggle-button::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: 50%;
-  left: 120%;
-  transform: translateY(-50%);
-  background-color: #333;
-  color: white;
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  opacity: 0;
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.2s;
-  display: none !important;
-}
-
-.toggle-button:hover::after {
-  opacity: 1;
-}
-
-.toggle-button.collapsed {
-  left: 10px;
-}
-.toggle-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #80bdff;
-}
-
 .pill-container {
   display: flex;
   flex-wrap: wrap;
@@ -200,6 +192,7 @@ html, body, #root {
   font-size: 1rem;
 }
 
+/* === Description Sidebar === */
 .description-sidebar {
   width: 320px;
   background-color: #fdfdfd;
@@ -211,5 +204,15 @@ html, body, #root {
   right: 0;
   top: 0;
   z-index: 999;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.description-sidebar.visible {
+  transform: translateX(0);
+}
+
+.description-sidebar.hidden {
+  transform: translateX(100%);
 }
