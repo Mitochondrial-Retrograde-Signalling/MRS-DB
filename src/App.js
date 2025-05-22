@@ -15,6 +15,8 @@ function App() {
   const [geneLimitReached, setGeneLimitReached] = useState(false);
   const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
   const [selectedTimepoint, setSelectedTimepoint] = useState('1h');
+  const [showDescriptions, setShowDescriptions] = useState(false);
+
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
@@ -344,7 +346,47 @@ function App() {
 
 
         <div className="main-content">
-        <h2>Main Content Area</h2>
+        {/* <h2>Main Content Area</h2> */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+        <button
+          onClick={() => setShowDescriptions(prev => !prev)}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: 'white',
+            color: '#1a3c7c',
+            border: '2px solid #1a3c7c',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            transition: 'background 0.2s, color 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+        >
+          {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+        </button>
+
+        <button
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#0b4ca3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            transition: 'background 0.2s'
+          }}
+          onClick={() => alert('Download triggered!')}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+        >
+          Download
+        </button>
+      </div>
+
           {timepoints.length > 0 && (
             <div className="tab-bar">
               {timepoints.map(tp => {
@@ -372,12 +414,65 @@ function App() {
             />
           )}
           
+
+
           {selectedGenes.length === 0 && (
             <p style={{ fontStyle: 'italic', color: '#888' }}>
               Please select at least one gene, genotype, and cell type to view the table.
             </p>
           )}
         </div>
+        {showDescriptions && (
+          <div className="description-sidebar" style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: '320px',
+            height: '100%',
+            backgroundColor: '#f7f9fb',
+            padding: '1rem',
+            boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+            overflowY: 'auto',
+            zIndex: 1000
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{ margin: 0 }}>Gene Descriptions</h3>
+              <button
+                onClick={() => setShowDescriptions(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {selectedGenes.map(gene => {
+                const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
+                return (
+                  <li key={gene} style={{ marginBottom: '1rem' }}>
+                    <strong>{details?.label || gene}</strong>
+                    <p style={{ fontSize: '0.85rem', color: '#555' }}>
+                      {details?.description || 'No description available.'}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
       </div>
     </div>
