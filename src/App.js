@@ -5,6 +5,7 @@ import './App.css';
 import { toast } from 'react-toastify';
 import GeneExpressionTable from './components/GeneExpressionTable';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import * as XLSX from "xlsx";
 
 function App() {
   const [geneListOptions, setGeneListOptions] = useState([]);
@@ -109,6 +110,69 @@ function App() {
     </div>
   );
   
+  const downloadTPData = () => {
+    const tpKey = `${selectedTimepoint}`;
+    const geneListData = data[tpKey]?.[selectedGeneList];
+    if (!geneListData) return;
+  
+    const clusterMap = {};
+    const allPairs = [];
+  
+    [...selectedCellTypes].sort().forEach(cellType => {
+      const clusters = new Set();
+      selectedGenes.forEach(gene => {
+        selectedGenotype.forEach(genotype => {
+          const clusterObj = geneListData?.[gene]?.[genotype]?.[cellType];
+          if (clusterObj) {
+            Object.keys(clusterObj).forEach(c => clusters.add(c));
+          }
+        });
+      });
+      const clusterList = Array.from(clusters).sort();
+      clusterMap[cellType] = clusterList;
+      clusterList.forEach(c => allPairs.push([cellType, c]));
+    });
+  
+    const headerRow1 = ["Gene", "Genotype"];
+    const headerRow2 = ["", ""];
+  
+    Object.entries(clusterMap).forEach(([cellType, clusters]) => {
+      clusters.forEach(() => headerRow1.push(cellType));
+      clusters.forEach(cl => headerRow2.push(cl));
+    });
+  
+    const merges = [];
+    let col = 2;
+    Object.entries(clusterMap).forEach(([cellType, clusters]) => {
+      if (clusters.length > 1) {
+        merges.push({ s: { r: 0, c: col }, e: { r: 0, c: col + clusters.length - 1 } });
+      }
+      col += clusters.length;
+    });
+  
+    const dataRows = [];
+    selectedGenes.forEach(gene => {
+      selectedGenotype.forEach(genotype => {
+        const row = [gene, genotype];
+        allPairs.forEach(([ct, cl]) => {
+          const val = geneListData?.[gene]?.[genotype]?.[ct]?.[cl];
+          row.push(val !== undefined && val !== null && !Number.isNaN(val) ? val : "no data");
+        });
+        dataRows.push(row);
+      });
+    });
+  
+    const sheetData = [headerRow1, headerRow2, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws["!merges"] = merges;
+    ws["!cols"] = headerRow1.map(() => ({ wch: 15 }));
+  
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
+  };
+  
+
   const timepointLabels = {
     '1h': '1-hour Timepoint',
     '3h': '3-hour Timepoint',
@@ -142,7 +206,12 @@ function App() {
                 <Select
                   options={geneListOptions.map(list => ({ value: list, label: list }))}
                   value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
-                  onChange={(opt) => setSelectedGeneList(opt?.value || '')}
+                  onChange={(opt) => {
+                    const newGeneList = opt?.value || '';
+                    setSelectedGeneList(newGeneList);
+                    setSelectedGenes([]); // ✅ Reset selected genes
+                    setGeneLimitReached(false); // ✅ Also reset the limit warning if needed
+                  }}
                   placeholder="Select Gene List..."
                   isSearchable
                   styles={{
@@ -379,7 +448,7 @@ function App() {
             fontSize: '0.95rem',
             transition: 'background 0.2s'
           }}
-          onClick={() => alert('Download triggered!')}
+          onClick={ downloadTPData }
           onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
         >
@@ -439,7 +508,8 @@ function App() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              borderBottom: '2px solid #ccc'
             }}>
               <h3 style={{ margin: 0 }}>Gene Descriptions</h3>
               <button
@@ -454,7 +524,7 @@ function App() {
                 }}
                 title="Close"
               >
-                ×
+                ✕
               </button>
             </div>
 
