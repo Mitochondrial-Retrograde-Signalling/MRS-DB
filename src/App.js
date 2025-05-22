@@ -1,57 +1,39 @@
-import React, { useEffect, useState, useRef } from "react";
-import Select from "react-select";
-import Plot from "react-plotly.js";
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
-import { useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
-import * as XLSX from "xlsx";
+import React, { useEffect, useState } from 'react';
+import Select from 'react-select';
 import { matchSorter } from 'match-sorter';
+import './App.css';
+import { toast } from 'react-toastify';
+import GeneExpressionTable from './components/GeneExpressionTable';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import * as XLSX from "xlsx";
 
 function App() {
-  const [data, setData] = useState({});
   const [geneListOptions, setGeneListOptions] = useState([]);
-  const [selectedGeneList, setSelectedGeneList] = useState(null);
-  const [geneOptions, setGeneOptions] = useState([]);
-  const [selectedGenes, setSelectedGenes] = useState([]);
-  const [timepoints, setTimepoints] = useState([]);
-  const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
   const [allGenesByGeneList, setAllGenesByGeneList] = useState({});
-  const [cellTypes, setCellTypes] = useState([]);
+  const [selectedGenotype, setSelectedGenotype] = useState([]);
+  const [selectedGenes, setSelectedGenes] = useState([]);
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
-  const [genotypes, setGenotypes] = useState([]);
-  const [selectedGenotypes, setSelectedGenotypes] = useState([]);
-  const [plotVisibility, setPlotVisibility] = useState({});
-  const [showScrollUp, setShowScrollUp] = useState(false);
-  const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
-  const location = useLocation();
-  const navigate = useNavigate();
-  const skipNextSync = useRef(false);
+  const [geneLimitReached, setGeneLimitReached] = useState(false);
+  const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
+  const [selectedTimepoint, setSelectedTimepoint] = useState('1h');
   const [showDescriptions, setShowDescriptions] = useState(false);
-  
-  // This is used to avoid label overflow
-  const wrappedLabels = {
-    "Companion cell": "Companion<br>cell",
-    "Epidermis": "Epi-<br>dermis",
-    "G2/M phase": "G2/m<br>phase",
-    "Leaf guard cell": "Leaf<br>guard<br>cell",
-    "Leaf pavement cell": "Leaf<br>pave-<br>ment\cell",
-    "Mesophyll": "Meso<br>phyll",
-    "Phloem parenchyma": "Phloem<br>paren-<br>chyma",
-    "S phase": "S phase",
-    "Unknown": "Unknown",
-    "Xylem": "Xylem",
-  };
-  
-  // This is for the scroll up button
+
+
+  const [data, setData] = useState({});
+  const [timepoints, setTimepoints] = useState([]);
+
+
+  const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
+  const [cellTypes, setCellTypes] = useState([]);
+  const [genotypes, setGenotypes] = useState([]);
+
+  const [selectedGeneList, setSelectedGeneList] = useState('');
+
+  const [cellTypeSearch, setCellTypeSearch] = useState('');
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+
   useEffect(() => {
-    const handleScroll = () => setShowScrollUp(window.scrollY > 300);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-  
-  // This is for reading the json files
-  useEffect(() => {
-    const files = ["1h.json", "3h.json", "6h.json"];
+    const files = ['1h.json', '3h.json', '6h.json'];
     Promise.all(
       files.map(f => fetch(`/data/processed/${f}`).then(res => res.json()))
     ).then(jsons => {
@@ -77,12 +59,10 @@ function App() {
           Object.entries(genes).forEach(([gene, geneData]) => {
             allGenesByGeneList[geneList].add(gene);
 
-            // Get gene name from Details block
             const geneName = geneData?.Details?.GeneName || '';
             const label = geneName ? `${gene} (${geneName})` : gene;
             const description = geneData?.Details?.Description || '';
 
-            // Store in details map for later fuzzy search
             geneDetailsByList[geneList][gene] = {
               id: gene,
               name: geneName,
@@ -91,7 +71,7 @@ function App() {
             };
 
             Object.entries(geneData).forEach(([genotype, cellMap]) => {
-              if (genotype === "Details") return;
+              if (genotype === 'Details') return;
               allGenotypes.add(genotype);
               Object.keys(cellMap || {}).forEach(cellType => {
                 allCellTypes.add(cellType);
@@ -108,6 +88,7 @@ function App() {
       setData(newData);
       setTimepoints(numericTPs);
       setSelectedTimepointRange([numericTPs[0], numericTPs[numericTPs.length - 1]]);
+      setSelectedTimepoint(`${numericTPs[0]}h`);
       setGeneListOptions(Array.from(geneLists).sort());
       setAllGenesByGeneList(allGenesByGeneList);
       setGeneDetailsByGeneList(geneDetailsByList);
@@ -116,783 +97,448 @@ function App() {
     });
   }, []);
 
-  // This is for showing the genes specific to the selected GeneList
-  useEffect(() => {
-    if (selectedGeneList && allGenesByGeneList[selectedGeneList]) {
-      const geneDetails = geneDetailsByGeneList[selectedGeneList] || {};
-      const options = Object.values(geneDetails).map(({ id, label }) => ({
-        value: id,
-        label: label || id
-      }));
-      setGeneOptions(options);
-      setSelectedGenes([]);
-    }
-  }, [selectedGeneList, allGenesByGeneList, geneDetailsByGeneList]);
+  const geneOptions = selectedGeneList && geneDetailsByGeneList[selectedGeneList]
+  ? Object.values(geneDetailsByGeneList[selectedGeneList]).map(({ id, label }) => ({
+      value: id,
+      label: label || id,
+    }))
+  : [];
 
-  // This resizes the heatmap upon new selection
-  // It has some time delay to avoid early rendering
-  useEffect(() => {
-    setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
-    }, 150);
-  }, [selectedGenes, selectedGeneList, selectedGenotypes, selectedCellTypes]);
-
-  // Sync geneList and others first — but NOT genes
-  useEffect(() => {
-    if (
-      geneListOptions.length === 0 ||
-      genotypes.length === 0 ||
-      cellTypes.length === 0 ||
-      timepoints.length === 0 ||
-      Object.keys(allGenesByGeneList).length === 0
-    ) return;
-
-    if (skipNextSync.current) {
-      skipNextSync.current = false;
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    const org = params.get("geneList") || geneListOptions[0];
-    const cellTypesParsed = params.get("cellTypes")?.split(",") || [cellTypes[0]];
-    const genotypesParsed = params.get("genotypes")?.split(",") || [genotypes[0]];
-
-    const tpRange = params.get("tpRange")?.split(",").map(Number);
-    const validRange = tpRange?.length === 2 && !tpRange.includes(NaN)
-      ? tpRange
-      : [timepoints[0], timepoints[timepoints.length - 1]];
-
-    setSelectedGeneList(org);
-    setSelectedCellTypes(cellTypesParsed);
-    setSelectedGenotypes(genotypesParsed);
-    setSelectedTimepointRange(validRange);
-  }, [
-    location.search,
-    geneListOptions,
-    genotypes,
-    cellTypes,
-    allGenesByGeneList,
-    timepoints
-  ]);
-
-  // Sync genes separately — only after geneOptions are available
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const genes = params.get("genes")?.split(",") || [];
-    const validGenes = genes.filter(g => geneOptions.includes(g));
-    if (validGenes.length) {
-      setSelectedGenes(validGenes);
-    }
-  }, [geneOptions, location.search]);
-
-  // Sync state → URL only if meaningful values are selected
-  useEffect(() => {
-    if (
-      !selectedGeneList ||
-      selectedGenes.length === 0 ||
-      selectedGenotypes.length === 0 ||
-      selectedCellTypes.length === 0 ||
-      (selectedTimepointRange[0] === 0 && selectedTimepointRange[1] === 0)
-    ) {
-      return;
-    }
-
-    const params = new URLSearchParams();
-    if (selectedGeneList) params.set("geneList", selectedGeneList);
-    if (selectedGenes.length) params.set("genes", selectedGenes.join(","));
-    if (selectedGenotypes.length) params.set("genotypes", selectedGenotypes.join(","));
-    if (selectedCellTypes.length) params.set("cellTypes", selectedCellTypes.join(","));
-    if (selectedTimepointRange.length === 2) params.set("tpRange", selectedTimepointRange.join(","));
-
-    const newSearch = params.toString();
-    const currentSearch = location.search.startsWith("?") ? location.search.substring(1) : location.search;
-
-    if (newSearch !== currentSearch) {
-      skipNextSync.current = true;
-      navigate({ search: newSearch }, { replace: true });
-    }
-  }, [
-    selectedGeneList,
-    selectedGenes,
-    selectedGenotypes,
-    selectedCellTypes,
-    selectedTimepointRange,
-    navigate,
-    location.search
-  ]);
-
-  // Renders plot for selected timepoint/s
-  const renderPlot = (tp) => {
-    const tpKey = `${tp}h`;
+  const CustomValue = () => (
+    <div style={{ fontStyle: 'italic', color: '#999', paddingLeft: '6px' }}>
+      Select maximum of 10 genes
+    </div>
+  );
+  
+  const downloadTPData = () => {
+    const tpKey = `${selectedTimepoint}`;
     const geneListData = data[tpKey]?.[selectedGeneList];
-    if (!geneListData) return null;
-
-    const xMetaSet = new Set();
-    selectedGenes.forEach(gene => {
-      const geneData = geneListData[gene];
-      if (!geneData) return;
-      selectedGenotypes.forEach(genotype => {
-        const cellMap = geneData[genotype] || {};
-        selectedCellTypes.forEach(cellType => {
-          const clusters = cellMap[cellType] || {};
-          Object.keys(clusters).forEach(cluster => {
-            if (cluster.startsWith("log2FC")) {
-              xMetaSet.add(`${cellType}||${cluster}`);
-            }
-          });
-        });
-      });
-    });
-
-    const xMeta = Array.from(xMetaSet).sort();
-    const xLabels = xMeta.map(k => k.split("||")[1].replace("log2FC_", ""));
-
-    const tileSize = 50;
-    const plotWidth = tileSize * xLabels.length + 400;
-    const plotHeight = tileSize * selectedGenes.length * selectedGenotypes.length + 200;
-
-    const yLabels = [];
-    const zData = [];
-    const maskData = [];
-    const hoverData = [];
-
-    selectedGenes.forEach(gene => {
-      selectedGenotypes.forEach(genotype => {
-        yLabels.push(`${gene} - ${genotype}`);
-        const zRow = [];
-        const maskRow = [];
-        const hoverTextRow = [];
-
-        xMeta.forEach(key => {
-          const [cellType, cluster] = key.split("||");
-          const val = geneListData[gene]?.[genotype]?.[cellType]?.[cluster];
-        
-          if (val === "ns") {
-            zRow.push(NaN);              // Still not plottable
-            maskRow.push(1);             // Masked
-            hoverTextRow.push("ns");     // show "ns"
-          } else if (val === undefined || val === null) {
-            zRow.push(null);             // Missing data
-            maskRow.push(1);
-            hoverTextRow.push("No data");  // distinguish
-          } else {
-            zRow.push(parseFloat(val));
-            maskRow.push(0);
-            hoverTextRow.push(val);
+    if (!geneListData) return;
+  
+    const clusterMap = {};
+    const allPairs = [];
+  
+    [...selectedCellTypes].sort().forEach(cellType => {
+      const clusters = new Set();
+      selectedGenes.forEach(gene => {
+        selectedGenotype.forEach(genotype => {
+          const clusterObj = geneListData?.[gene]?.[genotype]?.[cellType];
+          if (clusterObj) {
+            Object.keys(clusterObj).forEach(c => clusters.add(c));
           }
         });
-
-        zData.push(zRow);
-        maskData.push(maskRow);
-        hoverData.push(hoverTextRow);
       });
+      const clusterList = Array.from(clusters).sort();
+      clusterMap[cellType] = clusterList;
+      clusterList.forEach(c => allPairs.push([cellType, c]));
     });
-
-    const shapes = [];
-    const annotations = [];
-
-    for (let i = 0; i < selectedGenes.length; i++) {
-      const startIndex = i * selectedGenotypes.length;
-      const endIndex = startIndex + selectedGenotypes.length - 1;
-
-      shapes.push({
-        type: 'rect',
-        xref: 'x',
-        yref: 'y',
-        x0: -0.5,
-        x1: xLabels.length - 0.5,
-        y0: startIndex - 0.5,
-        y1: endIndex + 0.5,
-        line: {
-          color: 'white',
-          width: 2
-        },
-        layer: 'above',
-        fillcolor: 'rgba(0,0,0,0)'
-      });
-    }
-
-    const cellTypeGroups = {};
-    xMeta.forEach((key, idx) => {
-      const [cellType] = key.split("||");
-      if (!cellTypeGroups[cellType]) cellTypeGroups[cellType] = [];
-      cellTypeGroups[cellType].push(idx);
+  
+    const headerRow1 = ["Gene", "Genotype"];
+    const headerRow2 = ["", ""];
+  
+    Object.entries(clusterMap).forEach(([cellType, clusters]) => {
+      clusters.forEach(() => headerRow1.push(cellType));
+      clusters.forEach(cl => headerRow2.push(cl));
     });
-
-    Object.entries(cellTypeGroups).forEach(([cellType, indices]) => {
-      const start = Math.min(...indices);
-      const end = Math.max(...indices);
-    
-      // Use the wrapped labels if there is only a single cluster in the cell type
-      const displayLabel = (indices.length === 1 && wrappedLabels[cellType])
-      ? wrappedLabels[cellType]
-      : cellType;
-
-      // Background rectangle for the cell type label
-      shapes.push({
-        type: 'rect',
-        xref: 'x',
-        yref: 'y',
-        x0: start - 0.5,
-        x1: end + 0.5,
-        y0: yLabels.length - 0.5 + 0.2,  // just above heatmap
-        y1: yLabels.length - 0.5 + 1.2,  // height of label
-        fillcolor: '#bfbaba',           // light gray background
-        line: {
-          color: 'white',
-          width: 2 },
-        layer: 'below'
-      });
-    
-      // Cell type label text (annotation on top)
-      annotations.push({
-        x: (start + end) / 2,
-        y: yLabels.length - 0.5 + 0.7,
-        xref: 'x',
-        yref: 'y',
-        text: displayLabel,
-        showarrow: false,
-        font: { size: 9, color: '#333' },
-        align: 'center'
-      });
-    
-      // Optional vertical separator
-      if (start > 0) {
-        shapes.push({
-          type: 'line',
-          x0: start - 0.5,
-          x1: start - 0.5,
-          y0: -0.5,
-          y1: yLabels.length - 0.5,
-          xref: 'x',
-          yref: 'y',
-          line: {
-            color: 'white',
-            width: 2
-          },
-          layer: 'above'
-        });
+  
+    const merges = [];
+    let col = 2;
+    Object.entries(clusterMap).forEach(([cellType, clusters]) => {
+      if (clusters.length > 1) {
+        merges.push({ s: { r: 0, c: col }, e: { r: 0, c: col + clusters.length - 1 } });
       }
+      col += clusters.length;
     });
-
-    const allNull = zData.length === 0 || zData.flat().every(v => v === null || Number.isNaN(v));
-    
-    // Skip rendering the plot if there's no data or "ns" (not significant)
-    if (!xLabels.length || !yLabels.length || !zData.length || allNull) {
-      return (
-        <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
-          <h3>{tpKey}</h3>
-          <div style={{ marginBottom: '0.5rem', color: '#666', fontStyle: 'italic' }}>
-            All values are not statistically significant or missing. No heatmap rendered.
-          </div>
-        </div>
-      );
-    }
-
-    const visible = plotVisibility[tpKey] !== false; // Default to true
-    const toggleVisibility = () => {
-      setPlotVisibility(prev => ({ ...prev, [tpKey]: !visible }));
-    };
-
-    const downloadTPData = () => {
-      const tpKey = `${tp}h`;
-      const geneListData = data[tpKey]?.[selectedGeneList];
-      if (!geneListData) return;
-    
-      const clusterMap = {}; // { CellType: [Cluster1, Cluster2, ...] }
-      const allPairs = [];
-    
-      [...selectedCellTypes].sort().forEach(cellType => {
-        const clusters = new Set();
-        selectedGenes.forEach(gene => {
-          selectedGenotypes.forEach(genotype => {
-            const clusterObj = geneListData?.[gene]?.[genotype]?.[cellType];
-            if (clusterObj) {
-              Object.keys(clusterObj).forEach(c => clusters.add(c));
-            }
-          });
+  
+    const dataRows = [];
+    selectedGenes.forEach(gene => {
+      selectedGenotype.forEach(genotype => {
+        const row = [gene, genotype];
+        allPairs.forEach(([ct, cl]) => {
+          const val = geneListData?.[gene]?.[genotype]?.[ct]?.[cl];
+          row.push(val !== undefined && val !== null && !Number.isNaN(val) ? val : "no data");
         });
-        const clusterList = Array.from(clusters).sort();
-        clusterMap[cellType] = clusterList;
-        clusterList.forEach(c => allPairs.push([cellType, c]));
+        dataRows.push(row);
       });
-    
-      // Header rows
-      const headerRow1 = ["Gene", "Genotype", ...allPairs.map(([ct]) => ct)];
-      const headerRow2 = ["", "", ...allPairs.map(([_, cl]) => cl)];
-    
-      // Merge info for header row 1
-      const merges = [];
-      let col = 2;
-      for (const [cellType, clusters] of Object.entries(clusterMap)) {
-        const span = clusters.length;
-        if (span > 1) {
-          merges.push({
-            s: { r: 0, c: col },
-            e: { r: 0, c: col + span - 1 }
-          });
-        }
-        col += span;
-      }
-    
-      // Fill data rows
-      const dataRows = [];
-      selectedGenes.forEach(gene => {
-        selectedGenotypes.forEach(genotype => {
-          const row = [gene, genotype];
-          allPairs.forEach(([ct, cl]) => {
-            const val = geneListData?.[gene]?.[genotype]?.[ct]?.[cl];
-            row.push(val !== undefined && val !== null && !Number.isNaN(val) ? val : "No Data");
-          });
-          dataRows.push(row);
-        });
-      });
-    
-      // Final sheet data with headers
-      const sheetData = [headerRow1, headerRow2, ...dataRows];
-    
-      // Create workbook
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      ws["!merges"] = merges;
-    
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    
-      XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
-    };
-    
-    
-    return (
-      <div id={`plot-${tpKey}`} key={tpKey} style={{ marginBottom: "3rem" }}>
-        {/* Header row with title, show/hide toggle, and download button */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '2rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          {/* Left side: Timepoint label + toggle button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h3 style={{ margin: 0 }}>
-              {tpKey}
-              <span
-                title="This heatmap shows log₂ fold change. Gray tiles represent 'ns' (not statistically significant) or No data."
-                style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}
-              >
-                ℹ️
-              </span>
-            </h3>
-            <button onClick={toggleVisibility} style={{ fontSize: '0.85rem' }}>
-              {visible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-    
-          {/* Right side: Download button */}
-          <button
-            onClick={downloadTPData}
-            style={{
-              marginLeft: 'auto',
-              marginRight: '2rem',
-              padding: '0.4rem 0.8rem',
-              backgroundColor: '#3276db',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-            }}
-          >
-            Download {tpKey} Data
-          </button>
-        </div>
-    
-        {/* Plot block */}
-        {visible && (
-          <Plot
-            useResizeHandler={false}
-            style={{ width: `${plotWidth}px`, height: `${plotHeight}px` }}
-            data={[
-              {
-                z: zData,
-                x: xLabels.map((_, i) => i),
-                y: yLabels.map((_, i) => i),
-                type: "heatmap",
-                colorscale: [[0, "blue"], [0.5, "white"], [1, "red"]],
-                zmid: 0,
-                showscale: true,
-                colorbar: {
-                  title: {
-                    text: "log₂ Fold Change",
-                    side: "right",
-                    font: { size: 12, weight: "bold" }
-                  }
-                },
-                hovertext: hoverData,
-                hovertemplate: "%{y}<br>%{x}: %{hovertext}<extra></extra>",
-              },
-              {
-                z: maskData,
-                x: xLabels.map((_, i) => i),
-                y: yLabels.map((_, i) => i),
-                type: "heatmap",
-                colorscale: [[0, "rgba(0,0,0,0)"], [1, "#d3d3d3"]],
-                showscale: false,
-                hoverinfo: "skip",
-                opacity: 1
-              }
-            ]}
-            layout={{
-              width: plotWidth,
-              height: plotHeight,
-              margin: { l: 180, r: 30, t: 40, b: 140 },
-              yaxis: {
-                tickvals: yLabels.map((_, i) => i),
-                ticktext: yLabels,
-                automargin: true,
-                dtick: 1,
-                constrain: 'domain',
-                ticks: "",
-              },
-              xaxis: {
-                tickvals: xLabels.map((_, i) => i),
-                ticktext: xLabels,
-                tickangle: -60,
-                tickfont: { size: 12 },
-                automargin: true,
-                constrain: 'domain',
-                ticks: '',
-                showline: false,
-                showgrid: false,
-                zeroline: false
-              },
-              shapes,
-              annotations
-            }}
-            config={{ responsive: true }}
-          />
-        )}
-      </div>
-    );
-       
+    });
+  
+    const sheetData = [headerRow1, headerRow2, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws["!merges"] = merges;
+    ws["!cols"] = headerRow1.map(() => ({ wch: 15 }));
+  
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
+  };
+  
+
+  const timepointLabels = {
+    '1h': '1-hour Timepoint',
+    '3h': '3-hour Timepoint',
+    '6h': '6-hour Timepoint',
   };
 
   return (
-    <>
-      {/* FULL-WIDTH NAVBAR */}
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          backgroundColor: '#f8f9fa',
-          zIndex: 100,
-          padding: '1rem 3rem 1.5rem 3rem',
-          borderBottom: '1px solid #ccc',
-          width: '100%',
-        }}
-      >
-        {/* Title positioned on top */}
-        <div style={{ width: '100%', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}>Arabidopsis Gene Expression Explorer</h2>
-        </div>
-  
-        {/* Filter controls in flex container */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '2rem',
-            alignItems: 'flex-start',
-          }}
-        >
-          {/* GeneList */}
-          <div style={{ maxWidth: '150px', flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-              <strong>Gene List</strong>
-              <span title="Select a Gene List to explore gene expression." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                ℹ️
-              </span>
-            </div>
-            <div style={{ height: 56 }}>
-              <Select
-                options={geneListOptions.map(o => ({ value: o, label: o }))}
-                value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
-                onChange={opt => setSelectedGeneList(opt?.value || null)}
-                placeholder="Search Gene List..."
-                isSearchable
-                styles={{ container: base => ({ ...base, width: '100%' }) }}
-              />
-            </div>
-          </div>
-  
-          {/* Genotypes */}
-          <div style={{ maxWidth: '220px', flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-              <strong>Genotypes</strong>
-              <span title="Compare gene expression across selected genotypes." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                ℹ️
-              </span>
-            </div>
-            <Select
-              isMulti
-              options={genotypes.map(g => ({ value: g, label: g }))}
-              value={selectedGenotypes.map(g => ({ value: g, label: g }))}
-              onChange={(opts) => setSelectedGenotypes((opts || []).map(o => o.value))}
-              placeholder="Select genotypes"
-              closeMenuOnSelect={false}
-              isSearchable
-              styles={{
-                container: base => ({ ...base, width: '100%' }),
-                valueContainer: base => ({
-                  ...base,
-                  maxHeight: 80,
-                  overflowY: 'auto',
-                  flexWrap: 'wrap',
-                }),
-                menu: base => ({ ...base, zIndex: 9999 }),
-              }}
-            />
-          </div>
-  
-          {/* Genes */}
-          <div style={{ maxWidth: '300px', flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-              <strong>Genes</strong>
-              <span title="Choose one or more genes from the selected Gene List." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                ℹ️
-              </span>
-            </div>
-            <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
-              {console.log("Gene options:", geneOptions)}
-              <Select
-                isMulti
-                options={(geneOptions || []).map(g =>
-                  typeof g === "string" ? { value: g, label: g } : g
-                )}
-                value={selectedGenes.map(g => {
-                  const match = geneOptions.find(o => o.value === g);
-                  return match || { value: g, label: g };
-                })}
-                onChange={(opts) => setSelectedGenes((opts || []).map(o => o.value))}
-                filterOption={(option, inputValue) =>
-                  matchSorter([option], inputValue, { keys: ['label'] }).length > 0
-                  // option.label.toLowerCase().includes(inputValue.toLowerCase())
-                }
-                placeholder="Select genes"
-                isSearchable
-                isDisabled={!selectedGeneList}
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  control: base => ({
-                    ...base,
-                    minHeight: 120,
-                    height: 120,
-                    alignItems: 'flex-start',
-                  }),
-                  valueContainer: base => ({
-                    ...base,
-                    maxHeight: 80,
-                    overflowY: 'auto',
-                    flexWrap: 'wrap',
-                  }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-            </div>
-          </div>
-  
-          {/* Sidebar Toggle Tab */}
-          {selectedGenes.length > 0 && (
-            <div
-              onClick={() => setShowDescriptions(prev => !prev)}
-              style={{
-                position: 'fixed',
-                top: '40%',
-                right: showDescriptions ? '350px' : 0,
-                zIndex: 1000,
-                width: '40px',
-                height: '160px',
-                backgroundColor: '#3276db',
-                color: 'white',
-                writingMode: 'vertical-rl',
-                transform: 'rotate(180deg)',
-                fontSize: '0.85rem',
-                fontWeight: 'bold',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                cursor: 'pointer',
-                borderTopRightRadius: '6px',
-                borderBottomRightRadius: '6px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                transition: 'right 0.3s ease-in-out',
-                userSelect: 'none'
-              }}
-            >
-              {showDescriptions ? 'Hide Gene Description' : 'Show Gene Description'}
-            </div>
-          )}
+    <div className="app-wrapper">
+      <header className="top-bar">
+        <img src="/zju-logo.png" alt="ZJU Logo" className="zju-logo" />
+      </header>
 
-          {/* Sidebar Drawer */}
-          {selectedGenes.length > 0 && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                right: showDescriptions ? 0 : '-320px',
-                height: '100vh',
-                width: showDescriptions ? '320px' : '40px',
-                backgroundColor: '#f7f5ed',
-                borderLeft: '1px solid #ccc',
-                boxShadow: '-2px 0 6px rgba(0,0,0,0.1)',
-                padding: '1rem',
-                overflowY: 'auto',
-                zIndex: 1001,
-                transition: 'right 0.3s ease-in-out'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ margin: 0 }}>Gene Descriptions</h4>
-                <button
-                  onClick={() => setShowDescriptions(false)}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: '1.2rem',
-                    cursor: 'pointer'
+      
+      <div className="app-container">
+        <div className={`sidebar ${sidebarVisible ? '' : 'collapsed'}`}>
+          <button
+            className="toggle-button"
+            onClick={() => setSidebarVisible(!sidebarVisible)}
+            title={sidebarVisible ? 'Hide filter' : 'Show filter'}
+          >
+            {sidebarVisible ? <FiChevronLeft /> : <FiChevronRight />}
+          </button>
+
+          {sidebarVisible && (
+            <>
+              <h2 style={{ textAlign: 'center' }}>Filter Search</h2>
+
+              {/* Gene List Dropdown */}
+              <div className="search-section">
+                <label>Gene List:</label>
+                <Select
+                  options={geneListOptions.map(list => ({ value: list, label: list }))}
+                  value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
+                  onChange={(opt) => {
+                    const newGeneList = opt?.value || '';
+                    setSelectedGeneList(newGeneList);
+                    setSelectedGenes([]); // ✅ Reset selected genes
+                    setGeneLimitReached(false); // ✅ Also reset the limit warning if needed
                   }}
-                >
-                  ✕
-                </button>
+                  placeholder="Select Gene List..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
               </div>
 
-              <hr />
-
-              {selectedGenes.map(gene => {
-                const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
-                return (
-                  <div key={gene} style={{ marginBottom: '1rem' }}>
-                    <strong>{details?.label}</strong>
-                    <div style={{ fontSize: '0.9rem', color: '#555' }}>
-                      {details?.description || "No description available."}
+              {/* Genotype Dropdown */}
+              <div className="search-section">
+                <label>Genotype:</label>
+                <Select
+                  isMulti
+                  options={genotypes.map(gt => ({ value: gt, label: gt }))}
+                  value={selectedGenotype.map(gt => ({ value: gt, label: gt }))}
+                  onChange={(opts) => setSelectedGenotype((opts || []).map(o => o.value))}
+                  placeholder="Select genotypes..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: 'white',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                <div className="pill-container">
+                  {selectedGenotype.map(gt => (
+                    <div
+                      key={gt}
+                      className="pill"
+                      onClick={() =>
+                        setSelectedGenotype(selectedGenotype.filter(item => item !== gt))
+                      }
+                    >
+                      {gt} <span className="pill-x">×</span>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gene Multi-Select */}
+              <div className="search-section">
+                <label>Genes:</label>
+                <Select
+                  isMulti
+                  options={geneOptions}
+                  value={selectedGenes.map(g => geneOptions.find(o => o.value === g) || { value: g, label: g })}
+                  onChange={(opts) => {
+                    const selected = (opts || []).map(o => o.value);
+                    if (selected.length <= 10) {
+                      setSelectedGenes(selected);
+                      setGeneLimitReached(false);
+                    } else {
+                      setGeneLimitReached(true);
+                    }
+                  }}
+                  placeholder={selectedGeneList ? "Select genes..." : "Select a Gene List first"}
+                  isSearchable
+                  isDisabled={!selectedGeneList}
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: selectedGeneList ? 'white' : '#f3f3f3',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                {geneLimitReached && (
+                  <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#d9534f', marginTop: '4px' }}>
+                    You can only select up to 10 genes.
                   </div>
+                )}
+                <div className="pill-container">
+                  {selectedGenes.map(g => {
+                    const label = geneDetailsByGeneList[selectedGeneList]?.[g]?.label || g;
+                    return (
+                      <div
+                        key={g}
+                        className="pill"
+                        onClick={() => {
+                          setSelectedGenes(selectedGenes.filter(item => item !== g));
+                          setGeneLimitReached(false);
+                        }}
+                      >
+                        {label} <span className="pill-x">×</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cell Type Filter */}
+              <div className="search-section">
+                <label>Cell Types:</label>
+                <Select
+                  isMulti
+                  options={cellTypes.map(ct => ({ value: ct, label: ct }))}
+                  value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
+                  onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
+                  placeholder="Select cell types..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: 'white',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                <div className="pill-container">
+                  {selectedCellTypes.map(ct => (
+                    <div
+                      key={ct}
+                      className="pill"
+                      onClick={() =>
+                        setSelectedCellTypes(selectedCellTypes.filter(item => item !== ct))
+                      }
+                    >
+                      {ct} <span className="pill-x">×</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+
+        <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
+        {/* <h2>Main Content Area</h2> */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+        <button
+          onClick={() => setShowDescriptions(prev => !prev)}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: 'white',
+            color: '#1a3c7c',
+            border: '2px solid #1a3c7c',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            transition: 'background 0.2s, color 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+        >
+          {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+        </button>
+
+        <button
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#0b4ca3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            transition: 'background 0.2s'
+          }}
+          onClick={ downloadTPData }
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+        >
+          Download
+        </button>
+      </div>
+
+          {timepoints.length > 0 && (
+            <div className="tab-bar">
+              {timepoints.map(tp => {
+                const label = `${tp}h`;
+                return (
+                  <button
+                    key={label}
+                    className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
+                    onClick={() => setSelectedTimepoint(label)}
+                  >
+                    {timepointLabels[label] || label}
+                  </button>
                 );
               })}
             </div>
           )}
+          {selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList && (
+            <GeneExpressionTable
+              selectedGenes={selectedGenes}
+              selectedGenotype={selectedGenotype}
+              selectedCellTypes={selectedCellTypes}
+              geneDetailsByGeneList={geneDetailsByGeneList}
+              selectedGeneList={selectedGeneList}
+              data={{ [selectedTimepoint]: data[selectedTimepoint] }}
+            />
+          )}
+          
 
 
-          {/* Cell Types */}
-          <div style={{ maxWidth: '240px', flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-              <strong>Cell Types</strong>
-              <span title="Filter by specific cell types to focus your analysis." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                ℹ️
-              </span>
-            </div>
-            <div style={{ height: 120, display: 'flex', alignItems: 'stretch' }}>
-              <Select
-                isMulti
-                options={cellTypes.map(ct => ({ value: ct, label: ct }))}
-                value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
-                onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
-                placeholder="Select cell types"
-                closeMenuOnSelect={false}
-                isSearchable
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  control: base => ({
-                    ...base,
-                    minHeight: 120,
-                    height: 120,
-                    alignItems: 'flex-start',
-                  }),
-                  valueContainer: base => ({
-                    ...base,
-                    maxHeight: 80,
-                    overflowY: 'auto',
-                    flexWrap: 'wrap',
-                  }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-            </div>
-          </div>
-  
-          {/* Timepoint */}
-          {timepoints.length > 1 && (
-            <div style={{ maxWidth: '280px', flex: '1 1 240px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
-                <strong>Timepoint</strong>
-                <span title="Select a range of timepoints to display plots." style={{ marginLeft: '8px', cursor: 'help', fontSize: '1rem', color: '#666' }}>
-                  ℹ️
-                </span>
-              </div>
-              <Slider
-                range
-                min={timepoints[0]}
-                max={timepoints[timepoints.length - 1]}
-                value={selectedTimepointRange}
-                onChange={range => setSelectedTimepointRange(range)}
-                marks={timepoints.reduce((acc, tp) => {
-                  acc[tp] = tp.toString();
-                  return acc;
-                }, {})}
-                step={null}
-                allowCross={false}
-                style={{ width: '100%' }}
-              />
-            </div>
+          {selectedGenes.length === 0 && (
+            <p style={{ fontStyle: 'italic', color: '#888' }}>
+              Please select at least one gene, genotype, and cell type to view the table.
+            </p>
           )}
         </div>
-        {/* Footer message */}
-        <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#555', paddingTop: '0.5rem' }}>
-          This data is from the study <em>“Title placeholder lorem ipsum thingy”</em>. If you find this helpful, you may cite as:  
-          <strong> Surname J. et al., 2025. Article title bleep bloop. Journal title. Volume. Series. doi.</strong>
-        </div>
-      </div>
-  
-      {/* CONTENT AREA */}
-      <div style={{ padding: '1rem', paddingLeft: '5vw' }}>
-        {timepoints
-          .filter(tp => tp >= selectedTimepointRange[0] && tp <= selectedTimepointRange[1])
-          .map(tp => renderPlot(tp))}
-  
-        {showScrollUp && (
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        <div
+          className={`description-sidebar ${showDescriptions ? 'visible' : 'hidden'}`}
+        >
+          <div
             style={{
-              position: 'fixed',
-              bottom: '30px',
-              right: '30px',
-              zIndex: 1000,
-              padding: '0.6rem 0.95rem',
-              fontSize: '1.5rem',
-              borderRadius: '50%',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              cursor: 'pointer'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+              borderBottom: '2px solid #ccc',
             }}
           >
-            ⮝
-          </button>
-        )}
+            <h3 style={{ margin: 0 }}>Gene Descriptions</h3>
+            <button
+              onClick={() => setShowDescriptions(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                color: '#666',
+              }}
+              title="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {selectedGenes.map((gene) => {
+              const details = geneDetailsByGeneList[selectedGeneList]?.[gene];
+              return (
+                <li key={gene} style={{ marginBottom: '1rem' }}>
+                  <strong>{details?.label || gene}</strong>
+                  <p style={{ fontSize: '0.85rem', color: '#555' }}>
+                    {details?.description || 'No description available.'}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+
       </div>
-    </>
+    </div>
   );
-  
-  
 }
 
-export default function WrappedApp() {
-  return (
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  );
-}
+export default App;
