@@ -35,31 +35,36 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
   const dynamicColumns = useMemo(() => {
     const cellTypeGroups = selectedCellTypes.map(cellType => {
       const clusterSet = new Set();
-
+  
       selectedGenes.forEach(gene => {
         selectedGenotype.forEach(gt => {
           const clusters = Object.keys(geneListData?.[gene]?.[gt]?.[cellType] || {});
           clusters.forEach(c => clusterSet.add(c));
         });
       });
-
+  
+      // ✅ If nothing was found at all for this cell type, still show a placeholder
+      if (clusterSet.size === 0) {
+        clusterSet.add('no_cluster');
+      }
+  
       const clusterColumns = Array.from(clusterSet).sort().map(cluster =>
         columnHelper.accessor(row => {
-          const val = geneListData?.[row.gene]?.[row.genotype]?.[cellType]?.[cluster];
-          return val === undefined ? 'NA' : val;
+          const key = `${cellType}__${cluster}`;
+          return row[key] ?? 'no data';
         }, {
           id: `${cellType}__${cluster}`,
-          header: cluster.replace('log2FC_', '')
+          header: cluster === 'no_cluster' ? 'No Cluster' : cluster.replace('log2FC_', '')
         })
       );
-
+  
       return columnHelper.group({
         id: cellType,
         header: cellType,
         columns: clusterColumns
       });
     });
-
+  
     return [
       columnHelper.accessor('gene', {
         id: 'gene',
@@ -74,22 +79,45 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
       ...cellTypeGroups
     ];
   }, [selectedGenes, selectedGenotype, selectedCellTypes, geneListData]);
+  
 
   const dataRows = useMemo(() => {
     const rows = [];
+  
     selectedGenes.forEach(gene => {
       selectedGenotype.forEach((gt, idx, arr) => {
-        rows.push({
+        const row = {
           gene,
           genotype: gt,
           rowSpan: arr.length,
           isFirst: idx === 0,
           isLast: idx === arr.length - 1
+        };
+  
+        selectedCellTypes.forEach(cellType => {
+          const clusters = geneListData?.[gene]?.[gt]?.[cellType]
+            ? Object.keys(geneListData[gene][gt][cellType])
+            : [];
+  
+          clusters.forEach(cluster => {
+            const key = `${cellType}__${cluster}`;
+            const value = geneListData?.[gene]?.[gt]?.[cellType]?.[cluster];
+            row[key] = value ?? 'no data';
+          });
+  
+          // If no clusters at all, mark as "no data" for a placeholder
+          if (clusters.length === 0) {
+            row[`${cellType}__no_cluster`] = 'no data';
+          }
         });
+  
+        rows.push(row);
       });
     });
+  
     return rows;
-  }, [selectedGenes, selectedGenotype]);
+  }, [selectedGenes, selectedGenotype, selectedCellTypes, geneListData]);
+  
 
   const table = useReactTable({
     data: dataRows,
@@ -210,7 +238,14 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
                         style={{
                           textAlign: 'center',
                           ...groupRowStyle,
-                          ...generateBackgroundColor(cell.getValue())
+                          ...(cell.getValue() === 'no data'
+                            ? {
+                                fontStyle: 'italic',
+                                color: '#888',
+                                backgroundColor: '#f9f9f9',
+                                fontSize: '15px'
+                              }
+                            : generateBackgroundColor(cell.getValue()))
                         }}
                       >
                         {roundedValue(cell.getValue())}
