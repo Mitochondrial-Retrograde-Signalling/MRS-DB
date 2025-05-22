@@ -4,6 +4,7 @@ import { matchSorter } from 'match-sorter';
 import './App.css';
 import { toast } from 'react-toastify';
 import GeneExpressionTable from './components/GeneExpressionTable';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 function App() {
   const [geneListOptions, setGeneListOptions] = useState([]);
@@ -12,10 +13,12 @@ function App() {
   const [selectedGenes, setSelectedGenes] = useState([]);
   const [selectedCellTypes, setSelectedCellTypes] = useState([]);
   const [geneLimitReached, setGeneLimitReached] = useState(false);
+  const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
+  const [selectedTimepoint, setSelectedTimepoint] = useState('1h');
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
-  const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
+
 
   const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
   const [cellTypes, setCellTypes] = useState([]);
@@ -82,6 +85,7 @@ function App() {
       setData(newData);
       setTimepoints(numericTPs);
       setSelectedTimepointRange([numericTPs[0], numericTPs[numericTPs.length - 1]]);
+      setSelectedTimepoint(`${numericTPs[0]}h`);
       setGeneListOptions(Array.from(geneLists).sort());
       setAllGenesByGeneList(allGenesByGeneList);
       setGeneDetailsByGeneList(geneDetailsByList);
@@ -103,249 +107,259 @@ function App() {
     </div>
   );
   
+  const timepointLabels = {
+    '1h': '1-hour Timepoint',
+    '3h': '3-hour Timepoint',
+    '6h': '6-hour Timepoint',
+  };
+
   return (
     <div className="app-wrapper">
       <header className="top-bar">
         <img src="/zju-logo.png" alt="ZJU Logo" className="zju-logo" />
       </header>
 
+      
       <div className="app-container">
-        {sidebarVisible && (
-          <div className="sidebar">
-            <h2>Filter Search</h2>
+        <div className={`sidebar ${sidebarVisible ? '' : 'collapsed'}`}>
+          <button
+            className="toggle-button"
+            onClick={() => setSidebarVisible(!sidebarVisible)}
+            title={sidebarVisible ? 'Hide filter' : 'Show filter'}
+          >
+            {sidebarVisible ? <FiChevronLeft /> : <FiChevronRight />}
+          </button>
 
-            {/* Gene List Dropdown */}
-            <div className="search-section">
-              <label>Gene List:</label>
-              <Select
-                options={geneListOptions.map(list => ({ value: list, label: list }))}
-                value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
-                onChange={(opt) => setSelectedGeneList(opt?.value || '')}
-                placeholder="Select Gene List..."
-                isSearchable
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-            </div>
+          {sidebarVisible && (
+            <>
+              <h2>Filter Search</h2>
 
-            {/* Genotype Dropdown */}
-            <div className="search-section">
-              <label>Genotype:</label>
-              <Select
-                isMulti
-                options={genotypes.map(gt => ({ value: gt, label: gt }))}
-                value={selectedGenotype.map(gt => ({ value: gt, label: gt }))}
-                onChange={(opts) => setSelectedGenotype((opts || []).map(o => o.value))}
-                placeholder="Select genotypes..."
-                isSearchable
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  control: base => ({
-                    ...base,
-                    display: 'flex',
-                    justifyContent: 'flex-start',
-                    minHeight: 40,
-                    height: 40,
-                    backgroundColor: 'white',
-                  }),
-                  valueContainer: (base) => ({
-                    ...base,
-                    padding: '0 6px',
-                    overflow: 'hidden',
-                    flexWrap: 'nowrap',
-                  }),
-                  multiValue: () => ({ display: 'none' }), // ✅ hide default tags
-                  indicatorsContainer: base => ({
-                    ...base,
-                    marginLeft: 'auto',
-                    height: '100%',
-                    alignItems: 'center'
-                  }),
-                  dropdownIndicator: base => ({
-                    ...base,
-                    padding: '0 8px',
-                    color: '#666'
-                  }),
-                  clearIndicator: () => ({ display: 'none' }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-
-
-
-              {/* Custom Pills Below */}
-              <div className="pill-container">
-                {selectedGenotype.map(gt => (
-                  <div
-                    key={gt}
-                    className="pill"
-                    onClick={() =>
-                      setSelectedGenotype(selectedGenotype.filter(item => item !== gt))
-                    }
-                  >
-                    {gt} <span className="pill-x">×</span>
-                  </div>
-                ))}
+              {/* Gene List Dropdown */}
+              <div className="search-section">
+                <label>Gene List:</label>
+                <Select
+                  options={geneListOptions.map(list => ({ value: list, label: list }))}
+                  value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
+                  onChange={(opt) => setSelectedGeneList(opt?.value || '')}
+                  placeholder="Select Gene List..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
               </div>
-            </div>
 
-
-            {/* Gene Multi-Select with fuzzy search */}
-            <div className="search-section">
-              <label>Genes:</label>
-              <Select
-                isMulti
-                options={geneOptions}
-                value={selectedGenes.map(g => geneOptions.find(o => o.value === g) || { value: g, label: g })}
-                onChange={(opts) => {
-                  const selected = (opts || []).map(o => o.value);
-                  if (selected.length <= 10) {
-                    setSelectedGenes(selected);
-                    setGeneLimitReached(false);
-                  } else {
-                    setGeneLimitReached(true);
-                  }
-                }}
-                placeholder={selectedGeneList ? "Select genes..." : "Select a Gene List first"}
-                isSearchable
-                isDisabled={!selectedGeneList}
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  control: base => ({
-                    ...base,
-                    display: 'flex',
-                    justifyContent: 'flex-start',
-                    minHeight: 40,
-                    height: 40,
-                    backgroundColor: selectedGeneList ? 'white' : '#f3f3f3',
-                  }),
-                  valueContainer: base => ({
-                    ...base,
-                    padding: '0 6px',
-                    overflow: 'hidden',
-                    flexWrap: 'nowrap',
-                  }),
-                  multiValue: () => ({ display: 'none' }),
-                  indicatorsContainer: base => ({
-                    ...base,
-                    marginLeft: 'auto',
-                    height: '100%',
-                    alignItems: 'center'
-                  }),
-                  dropdownIndicator: base => ({
-                    ...base,
-                    padding: '0 8px',
-                    color: '#666'
-                  }),
-                  clearIndicator: () => ({ display: 'none' }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-
-              {/* ✅ Limit warning goes right below the pills */}
-              {geneLimitReached && (
-                <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#d9534f', marginTop: '4px' }}>
-                  You can only select up to 10 genes.
-                </div>
-              )}
-              
-              {/* ✅ Pills below input */}
-              <div className="pill-container">
-                {selectedGenes.map(g => {
-                  const label = geneDetailsByGeneList[selectedGeneList]?.[g]?.label || g;
-                  return (
+              {/* Genotype Dropdown */}
+              <div className="search-section">
+                <label>Genotype:</label>
+                <Select
+                  isMulti
+                  options={genotypes.map(gt => ({ value: gt, label: gt }))}
+                  value={selectedGenotype.map(gt => ({ value: gt, label: gt }))}
+                  onChange={(opts) => setSelectedGenotype((opts || []).map(o => o.value))}
+                  placeholder="Select genotypes..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: 'white',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                <div className="pill-container">
+                  {selectedGenotype.map(gt => (
                     <div
-                      key={g}
+                      key={gt}
                       className="pill"
-                      onClick={() => {
-                        setSelectedGenes(selectedGenes.filter(item => item !== g));
-                        setGeneLimitReached(false); // clear warning when one is removed
-                      }}
+                      onClick={() =>
+                        setSelectedGenotype(selectedGenotype.filter(item => item !== gt))
+                      }
                     >
-                      {label} <span className="pill-x">×</span>
+                      {gt} <span className="pill-x">×</span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
 
-
-
-
-
-            {/* Cell Type Filter */}
-            <div className="search-section">
-              <label>Cell Types:</label>
-              <Select
-                isMulti
-                options={cellTypes.map(ct => ({ value: ct, label: ct }))}
-                value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
-                onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
-                placeholder="Select cell types..."
-                isSearchable
-                styles={{
-                  container: base => ({ ...base, width: '100%' }),
-                  control: base => ({
-                    ...base,
-                    display: 'flex',
-                    justifyContent: 'flex-start',
-                    minHeight: 40,
-                    height: 40,
-                    backgroundColor: 'white',
-                  }),
-                  valueContainer: base => ({
-                    ...base,
-                    padding: '0 6px',
-                    overflow: 'hidden',
-                    flexWrap: 'nowrap',
-                  }),
-                  multiValue: () => ({ display: 'none' }),
-                  indicatorsContainer: base => ({
-                    ...base,
-                    marginLeft: 'auto',
-                    height: '100%',
-                    alignItems: 'center'
-                  }),
-                  dropdownIndicator: base => ({
-                    ...base,
-                    padding: '0 8px',
-                    color: '#666'
-                  }),
-                  clearIndicator: () => ({ display: 'none' }),
-                  menu: base => ({ ...base, zIndex: 9999 }),
-                }}
-              />
-
-              {/* ✅ Custom pill-style tags */}
-              <div className="pill-container">
-                {selectedCellTypes.map(ct => (
-                  <div
-                    key={ct}
-                    className="pill"
-                    onClick={() =>
-                      setSelectedCellTypes(selectedCellTypes.filter(item => item !== ct))
+              {/* Gene Multi-Select */}
+              <div className="search-section">
+                <label>Genes:</label>
+                <Select
+                  isMulti
+                  options={geneOptions}
+                  value={selectedGenes.map(g => geneOptions.find(o => o.value === g) || { value: g, label: g })}
+                  onChange={(opts) => {
+                    const selected = (opts || []).map(o => o.value);
+                    if (selected.length <= 10) {
+                      setSelectedGenes(selected);
+                      setGeneLimitReached(false);
+                    } else {
+                      setGeneLimitReached(true);
                     }
-                  >
-                    {ct} <span className="pill-x">×</span>
+                  }}
+                  placeholder={selectedGeneList ? "Select genes..." : "Select a Gene List first"}
+                  isSearchable
+                  isDisabled={!selectedGeneList}
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: selectedGeneList ? 'white' : '#f3f3f3',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                {geneLimitReached && (
+                  <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#d9534f', marginTop: '4px' }}>
+                    You can only select up to 10 genes.
                   </div>
-                ))}
+                )}
+                <div className="pill-container">
+                  {selectedGenes.map(g => {
+                    const label = geneDetailsByGeneList[selectedGeneList]?.[g]?.label || g;
+                    return (
+                      <div
+                        key={g}
+                        className="pill"
+                        onClick={() => {
+                          setSelectedGenes(selectedGenes.filter(item => item !== g));
+                          setGeneLimitReached(false);
+                        }}
+                      >
+                        {label} <span className="pill-x">×</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-          </div>
-        )}
+              {/* Cell Type Filter */}
+              <div className="search-section">
+                <label>Cell Types:</label>
+                <Select
+                  isMulti
+                  options={cellTypes.map(ct => ({ value: ct, label: ct }))}
+                  value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
+                  onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
+                  placeholder="Select cell types..."
+                  isSearchable
+                  styles={{
+                    container: base => ({ ...base, width: '100%' }),
+                    control: base => ({
+                      ...base,
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      minHeight: 40,
+                      height: 40,
+                      backgroundColor: 'white',
+                    }),
+                    valueContainer: base => ({
+                      ...base,
+                      padding: '0 6px',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap',
+                    }),
+                    multiValue: () => ({ display: 'none' }),
+                    indicatorsContainer: base => ({
+                      ...base,
+                      marginLeft: 'auto',
+                      height: '100%',
+                      alignItems: 'center'
+                    }),
+                    dropdownIndicator: base => ({
+                      ...base,
+                      padding: '0 8px',
+                      color: '#666'
+                    }),
+                    clearIndicator: () => ({ display: 'none' }),
+                    menu: base => ({ ...base, zIndex: 9999 }),
+                  }}
+                />
+                <div className="pill-container">
+                  {selectedCellTypes.map(ct => (
+                    <div
+                      key={ct}
+                      className="pill"
+                      onClick={() =>
+                        setSelectedCellTypes(selectedCellTypes.filter(item => item !== ct))
+                      }
+                    >
+                      {ct} <span className="pill-x">×</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-        {/* Toggle Sidebar */}
-        <button
-          className={`toggle-button ${sidebarVisible ? '' : 'collapsed'}`}
-          onClick={() => setSidebarVisible(!sidebarVisible)}
-        >
-          {sidebarVisible ? '<<' : '>>'}
-        </button>
 
         <div className="main-content">
+          {timepoints.length > 0 && (
+            <div className="tab-bar">
+              {timepoints.map(tp => {
+                const label = `${tp}h`;
+                return (
+                  <button
+                    key={label}
+                    className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
+                    onClick={() => setSelectedTimepoint(label)}
+                  >
+                    {timepointLabels[label] || label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <h2>Main Content Area</h2>
 
           {selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList && (
@@ -355,7 +369,7 @@ function App() {
               selectedCellTypes={selectedCellTypes}
               geneDetailsByGeneList={geneDetailsByGeneList}
               selectedGeneList={selectedGeneList}
-              data={data}
+              data={{ [selectedTimepoint]: data[selectedTimepoint] }}
             />
           )}
 
