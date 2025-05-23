@@ -486,7 +486,7 @@ function App() {
 
 
           {selectedGenes.length === 0 && (
-            <p style={{ fontStyle: 'italic', color: '#888' }}>
+            <p style={{ fontStyle: 'italic', color: '#888', textIndent: '1.5rem' }}>
               Please select at least one gene, genotype, and cell type to view the table.
             </p>
           )}
