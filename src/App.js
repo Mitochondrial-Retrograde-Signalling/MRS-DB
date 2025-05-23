@@ -17,15 +17,18 @@ function App() {
   const [selectedTimepointRange, setSelectedTimepointRange] = useState([0, 0]);
   const [selectedTimepoint, setSelectedTimepoint] = useState('1h');
   const [showDescriptions, setShowDescriptions] = useState(false);
-
+  const [cellTypes, setCellTypes] = useState([]);
+  const [genotypes, setGenotypes] = useState([]);
+  const genotypeOptions = [{ value: '*', label: 'Select All' }, ...genotypes.map(gt => ({ value: gt, label: gt }))];
+  const cellTypeOptions = [{ value: '*', label: 'Select All' }, ...cellTypes.map(ct => ({ value: ct, label: ct }))];
+  
+  
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
 
 
   const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
-  const [cellTypes, setCellTypes] = useState([]);
-  const [genotypes, setGenotypes] = useState([]);
 
   const [selectedGeneList, setSelectedGeneList] = useState('');
 
@@ -226,9 +229,16 @@ function App() {
                 <label>Genotype:</label>
                 <Select
                   isMulti
-                  options={genotypes.map(gt => ({ value: gt, label: gt }))}
+                  options={genotypeOptions}
                   value={selectedGenotype.map(gt => ({ value: gt, label: gt }))}
-                  onChange={(opts) => setSelectedGenotype((opts || []).map(o => o.value))}
+                  onChange={(opts) => {
+                    const values = (opts || []).map(o => o.value);
+                    if (values.includes('*')) {
+                      setSelectedGenotype(genotypes); // Select all
+                    } else {
+                      setSelectedGenotype(values);
+                    }
+                  }}
                   placeholder="Select genotypes..."
                   isSearchable
                   styles={{
@@ -358,9 +368,16 @@ function App() {
                 <label>Cell Types:</label>
                 <Select
                   isMulti
-                  options={cellTypes.map(ct => ({ value: ct, label: ct }))}
+                  options={cellTypeOptions}
                   value={selectedCellTypes.map(ct => ({ value: ct, label: ct }))}
-                  onChange={(opts) => setSelectedCellTypes((opts || []).map(o => o.value))}
+                  onChange={(opts) => {
+                    const values = (opts || []).map(o => o.value);
+                    if (values.includes('*')) {
+                      setSelectedCellTypes(cellTypes); // Select all
+                    } else {
+                      setSelectedCellTypes(values);
+                    }
+                  }}
                   placeholder="Select cell types..."
                   isSearchable
                   styles={{

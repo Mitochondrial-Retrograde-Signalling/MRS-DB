@@ -43,7 +43,7 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
         });
       });
   
-      // ✅ If nothing was found at all for this cell type, still show a placeholder
+      // If nothing was found at all for this cell type, still show a placeholder
       if (clusterSet.size === 0) {
         clusterSet.add('no_cluster');
       }
