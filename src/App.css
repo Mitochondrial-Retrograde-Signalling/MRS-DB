@@ -81,10 +81,10 @@ html, body, #root {
   left: 40px;
 }
 
-.toggle-button:hover {
+/* .toggle-button:hover {
   background-color: #0059b3;
   transform: scale(1.05);
-}
+} */
 
 .toggle-button:focus {
   outline: none;
