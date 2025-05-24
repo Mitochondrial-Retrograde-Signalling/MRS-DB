@@ -192,10 +192,11 @@ function App() {
 
   return (
     <div className="app-wrapper">
-      <header className="top-bar">
-        <img src="/zju-logo.png" alt="ZJU Logo" className="zju-logo" />
+      <header className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
+        <img src="/zju-logo.png" alt="Zhejiang University Logo" style={{ height: '42px' }} />
+        <span className="partnership-text">in partnership with</span>
+        <img src="/latrobe-logo.svg" alt="La Trobe University Logo" style={{ height: '50px' }} />
       </header>
-
       
       <div className="app-container">
         <div className={`sidebar ${sidebarVisible ? '' : 'collapsed'}`}>

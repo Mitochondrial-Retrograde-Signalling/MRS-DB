@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap');
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -215,4 +217,11 @@ html, body, #root {
 
 .description-sidebar.hidden {
   transform: translateX(100%);
+}
+
+.partnership-text {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1rem;
+  color: white;
+  margin: 0 0.5rem;
 }
