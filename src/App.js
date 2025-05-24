@@ -172,8 +172,15 @@ function App() {
     ws["!cols"] = headerRow1.map(() => ({ wch: 15 }));
   
     const wb = XLSX.utils.book_new();
+    const now = new Date().toISOString().replace(/[:.]/g, '-');
+    const defaultFileName = `${tpKey}_data_${now}.xlsx`;
+    const userFileName = prompt("Enter filename for download:", defaultFileName);
+
+
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
+    if (userFileName) {
+      XLSX.writeFile(wb, userFileName.endsWith('.xlsx') ? userFileName : `${userFileName}.xlsx`);
+    }
   };
   
 
