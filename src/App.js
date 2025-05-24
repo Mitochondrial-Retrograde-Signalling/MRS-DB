@@ -647,12 +647,6 @@ function App() {
             Please cite as: <br />
             <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
           </footer>
-          
-          {selectedGenes.length === 0 && (
-            <p style={{ fontStyle: 'italic', color: '#888', textIndent: '1.5rem' }}>
-              Please select at least one gene, genotype, and cell type to view the table.
-            </p>
-          )}
         </div>
 
 
