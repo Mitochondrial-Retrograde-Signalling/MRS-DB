@@ -21,8 +21,9 @@ function App() {
   const [genotypes, setGenotypes] = useState([]);
   const genotypeOptions = [{ value: '*', label: 'Select All' }, ...genotypes.map(gt => ({ value: gt, label: gt }))];
   const cellTypeOptions = [{ value: '*', label: 'Select All' }, ...cellTypes.map(ct => ({ value: ct, label: ct }))];
-  
-  
+  const [showCitation, setShowCitation] = useState(false);
+  const [geneSearchInput, setGeneSearchInput] = useState('');
+
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
@@ -290,18 +291,41 @@ function App() {
 
               {/* Gene Multi-Select */}
               <div className="search-section">
-                <label>Genes:</label>
+              <label>
+                Genes (max of 10):
+                <span style={{ marginLeft: '6px', fontSize: '0.85rem', color: '#555' }}>
+                  {selectedGenes.length} selected
+                </span>
+              </label>
                 <Select
                   isMulti
-                  options={geneOptions}
+                  closeMenuOnSelect={false}
+                  hideSelectedOptions={false}
+                  options={
+                    geneOptions.filter(opt =>
+                      opt.label.toLowerCase().includes(geneSearchInput.toLowerCase())
+                    )
+                  }
+                  inputValue={geneSearchInput}
+                  onInputChange={(val, { action }) => {
+                    // Don't clear search on selection
+                    if (action !== 'input-blur' && action !== 'menu-close') {
+                      setGeneSearchInput(val);
+                    }
+                  }}
                   value={selectedGenes.map(g => geneOptions.find(o => o.value === g) || { value: g, label: g })}
-                  onChange={(opts) => {
+                  onChange={(opts, { action }) => {
                     const selected = (opts || []).map(o => o.value);
                     if (selected.length <= 10) {
                       setSelectedGenes(selected);
                       setGeneLimitReached(false);
                     } else {
                       setGeneLimitReached(true);
+                    }
+
+                    // Retain search value after selecting (key fix!)
+                    if (action === 'select-option') {
+                      setGeneSearchInput(geneSearchInput); // force re-setting current input
                     }
                   }}
                   placeholder={selectedGeneList ? "Select genes..." : "Select a Gene List first"}
@@ -339,11 +363,14 @@ function App() {
                     menu: base => ({ ...base, zIndex: 9999 }),
                   }}
                 />
+
+
                 {geneLimitReached && (
                   <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#d9534f', marginTop: '4px' }}>
                     You can only select up to 10 genes.
                   </div>
                 )}
+
                 <div className="pill-container">
                   {selectedGenes.map(g => {
                     const label = geneDetailsByGeneList[selectedGeneList]?.[g]?.label || g;
@@ -362,6 +389,9 @@ function App() {
                   })}
                 </div>
               </div>
+
+
+
 
               {/* Cell Type Filter */}
               <div className="search-section">
@@ -554,6 +584,67 @@ function App() {
 
 
       </div>
+      {/* Floating Cite Button */}
+      <button
+        onClick={() => setShowCitation(true)}
+        title="How to Cite"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          backgroundColor: '#003f88',
+          color: 'white',
+          border: 'none',
+          fontSize: '1.2rem',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+          cursor: 'pointer',
+          zIndex: 2000,
+          fontSize: '30px'
+        }}
+      >
+        ❝
+      </button>
+
+      {/* Citation Popover */}
+      {showCitation && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '90px',
+            right: '20px',
+            width: '320px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            padding: '1rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            zIndex: 2001,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <strong>How to Cite</strong>
+            <button
+              onClick={() => setShowCitation(false)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+              }}
+              title="Close"
+            >
+              ✕
+            </button>
+          </div>
+          <p style={{ fontSize: '0.9rem', color: '#333', lineHeight: '1.4' }}>
+            Your Name, et al. (2025). *Title of the Study or Dataset*. Retrieved from https://yourwebapp.url
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }
