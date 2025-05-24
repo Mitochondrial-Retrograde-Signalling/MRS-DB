@@ -677,67 +677,6 @@ function App() {
 
 
       </div>
-      {/* Floating Cite Button */}
-      <button
-        onClick={() => setShowCitation(true)}
-        title="How to Cite"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: '#003f88',
-          color: 'white',
-          border: 'none',
-          fontSize: '1.2rem',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-          cursor: 'pointer',
-          zIndex: 2000,
-          fontSize: '30px'
-        }}
-      >
-        ❝
-      </button>
-
-      {/* Citation Popover */}
-      {showCitation && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '90px',
-            right: '20px',
-            width: '320px',
-            backgroundColor: '#fff',
-            borderRadius: '8px',
-            padding: '1rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            zIndex: 2001,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <strong>How to Cite</strong>
-            <button
-              onClick={() => setShowCitation(false)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '1.1rem',
-              }}
-              title="Close"
-            >
-              ✕
-            </button>
-          </div>
-          <p style={{ fontSize: '0.9rem', color: '#333', lineHeight: '1.4' }}>
-            Your Name, et al. (2025). *Title of the Study or Dataset*. Retrieved from https://yourwebapp.url
-          </p>
-        </div>
-      )}
-
     </div>
   );
 }
