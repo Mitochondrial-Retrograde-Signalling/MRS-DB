@@ -206,15 +206,40 @@ function App() {
 
               {/* Gene List Dropdown */}
               <div className="search-section">
-                <label>Gene List:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Gene List
+                  </label>
+                  {selectedGeneList.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGeneList([]);
+                        setSelectedGenes([]); // Reset selected genes
+                        setGeneLimitReached(false); // Also reset the limit warning if needed
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
                 <Select
                   options={geneListOptions.map(list => ({ value: list, label: list }))}
                   value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
                   onChange={(opt) => {
                     const newGeneList = opt?.value || '';
                     setSelectedGeneList(newGeneList);
-                    setSelectedGenes([]); // ✅ Reset selected genes
-                    setGeneLimitReached(false); // ✅ Also reset the limit warning if needed
+                    setSelectedGenes([]); // Reset selected genes
+                    setGeneLimitReached(false); // Also reset the limit warning if needed
                   }}
                   placeholder="Select Gene List..."
                   isSearchable
@@ -227,7 +252,30 @@ function App() {
 
               {/* Genotype Dropdown */}
               <div className="search-section">
-                <label>Genotype:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Genotype
+                  </label>
+                  {selectedGenotype.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGenotype([]);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
                   options={genotypeOptions}
@@ -291,12 +339,34 @@ function App() {
 
               {/* Gene Multi-Select */}
               <div className="search-section">
-              <label>
-                Genes (max of 10):
-                <span style={{ marginLeft: '6px', fontSize: '0.85rem', color: '#555' }}>
-                  {selectedGenes.length} selected
-                </span>
-              </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Genes (max of 10):
+                    <span style={{ marginLeft: '6px', fontSize: '0.85rem', color: '#555' }}>
+                      {selectedGenes.length} selected
+                    </span>
+                  </label>
+                  {selectedGenes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGenes([]);
+                        setGeneLimitReached(false);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
                   closeMenuOnSelect={false}
@@ -395,7 +465,30 @@ function App() {
 
               {/* Cell Type Filter */}
               <div className="search-section">
-                <label>Cell Types:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Cell Types
+                  </label>
+                  {selectedCellTypes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedCellTypes([]);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
                   options={cellTypeOptions}
