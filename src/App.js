@@ -21,8 +21,9 @@ function App() {
   const [genotypes, setGenotypes] = useState([]);
   const genotypeOptions = [{ value: '*', label: 'Select All' }, ...genotypes.map(gt => ({ value: gt, label: gt }))];
   const cellTypeOptions = [{ value: '*', label: 'Select All' }, ...cellTypes.map(ct => ({ value: ct, label: ct }))];
-  
-  
+  const [showCitation, setShowCitation] = useState(false);
+  const [geneSearchInput, setGeneSearchInput] = useState('');
+
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
@@ -171,8 +172,15 @@ function App() {
     ws["!cols"] = headerRow1.map(() => ({ wch: 15 }));
   
     const wb = XLSX.utils.book_new();
+    const now = new Date().toISOString().replace(/[:.]/g, '-');
+    const defaultFileName = `${tpKey}_data_${now}.xlsx`;
+    const userFileName = prompt("Enter filename for download:", defaultFileName);
+
+
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, `${tpKey}_data.xlsx`);
+    if (userFileName) {
+      XLSX.writeFile(wb, userFileName.endsWith('.xlsx') ? userFileName : `${userFileName}.xlsx`);
+    }
   };
   
 
@@ -184,10 +192,11 @@ function App() {
 
   return (
     <div className="app-wrapper">
-      <header className="top-bar">
-        <img src="/zju-logo.png" alt="ZJU Logo" className="zju-logo" />
+      <header className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
+        <img src="/zju-logo.png" alt="Zhejiang University Logo" style={{ height: '42px' }} />
+        <span className="partnership-text">in partnership with</span>
+        <img src="/latrobe-logo.svg" alt="La Trobe University Logo" style={{ height: '50px' }} />
       </header>
-
       
       <div className="app-container">
         <div className={`sidebar ${sidebarVisible ? '' : 'collapsed'}`}>
@@ -205,15 +214,40 @@ function App() {
 
               {/* Gene List Dropdown */}
               <div className="search-section">
-                <label>Gene List:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Gene List
+                  </label>
+                  {selectedGeneList.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGeneList([]);
+                        setSelectedGenes([]); // Reset selected genes
+                        setGeneLimitReached(false); // Also reset the limit warning if needed
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
                 <Select
                   options={geneListOptions.map(list => ({ value: list, label: list }))}
                   value={selectedGeneList ? { value: selectedGeneList, label: selectedGeneList } : null}
                   onChange={(opt) => {
                     const newGeneList = opt?.value || '';
                     setSelectedGeneList(newGeneList);
-                    setSelectedGenes([]); // ✅ Reset selected genes
-                    setGeneLimitReached(false); // ✅ Also reset the limit warning if needed
+                    setSelectedGenes([]); // Reset selected genes
+                    setGeneLimitReached(false); // Also reset the limit warning if needed
                   }}
                   placeholder="Select Gene List..."
                   isSearchable
@@ -226,7 +260,30 @@ function App() {
 
               {/* Genotype Dropdown */}
               <div className="search-section">
-                <label>Genotype:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Genotype
+                  </label>
+                  {selectedGenotype.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGenotype([]);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
                   options={genotypeOptions}
@@ -290,18 +347,63 @@ function App() {
 
               {/* Gene Multi-Select */}
               <div className="search-section">
-                <label>Genes:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Genes (max of 10):
+                    <span style={{ marginLeft: '6px', fontSize: '0.85rem', color: '#555' }}>
+                      {selectedGenes.length} selected
+                    </span>
+                  </label>
+                  {selectedGenes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedGenes([]);
+                        setGeneLimitReached(false);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
-                  options={geneOptions}
+                  closeMenuOnSelect={false}
+                  hideSelectedOptions={false}
+                  options={
+                    geneOptions.filter(opt =>
+                      opt.label.toLowerCase().includes(geneSearchInput.toLowerCase())
+                    )
+                  }
+                  inputValue={geneSearchInput}
+                  onInputChange={(val, { action }) => {
+                    // Don't clear search on selection
+                    if (action !== 'input-blur' && action !== 'menu-close') {
+                      setGeneSearchInput(val);
+                    }
+                  }}
                   value={selectedGenes.map(g => geneOptions.find(o => o.value === g) || { value: g, label: g })}
-                  onChange={(opts) => {
+                  onChange={(opts, { action }) => {
                     const selected = (opts || []).map(o => o.value);
                     if (selected.length <= 10) {
                       setSelectedGenes(selected);
                       setGeneLimitReached(false);
                     } else {
                       setGeneLimitReached(true);
+                    }
+
+                    // Retain search value after selecting (key fix!)
+                    if (action === 'select-option') {
+                      setGeneSearchInput(geneSearchInput); // force re-setting current input
                     }
                   }}
                   placeholder={selectedGeneList ? "Select genes..." : "Select a Gene List first"}
@@ -339,11 +441,14 @@ function App() {
                     menu: base => ({ ...base, zIndex: 9999 }),
                   }}
                 />
+
+
                 {geneLimitReached && (
                   <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#d9534f', marginTop: '4px' }}>
                     You can only select up to 10 genes.
                   </div>
                 )}
+
                 <div className="pill-container">
                   {selectedGenes.map(g => {
                     const label = geneDetailsByGeneList[selectedGeneList]?.[g]?.label || g;
@@ -363,9 +468,35 @@ function App() {
                 </div>
               </div>
 
+
+
+
               {/* Cell Type Filter */}
               <div className="search-section">
-                <label>Cell Types:</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>
+                    Cell Types
+                  </label>
+                  {selectedCellTypes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedCellTypes([]);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <Select
                   isMulti
                   options={cellTypeOptions}
@@ -433,45 +564,45 @@ function App() {
 
         <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
         {/* <h2>Main Content Area</h2> */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
-        <button
-          onClick={() => setShowDescriptions(prev => !prev)}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: 'white',
-            color: '#1a3c7c',
-            border: '2px solid #1a3c7c',
-            borderRadius: '6px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            transition: 'background 0.2s, color 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-        >
-          {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
-        </button>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+            <button
+              onClick={() => setShowDescriptions(prev => !prev)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: 'white',
+                color: '#1a3c7c',
+                border: '2px solid #1a3c7c',
+                borderRadius: '6px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                transition: 'background 0.2s, color 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+            >
+              {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+            </button>
 
-        <button
-          style={{
-            padding: '10px 16px',
-            backgroundColor: '#0b4ca3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            transition: 'background 0.2s'
-          }}
-          onClick={ downloadTPData }
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
-        >
-          Download
-        </button>
-      </div>
+            <button
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#0b4ca3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                transition: 'background 0.2s'
+              }}
+              onClick={ downloadTPData }
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+            >
+              Download
+            </button>
+          </div>
 
           {timepoints.length > 0 && (
             <div className="tab-bar">
@@ -501,13 +632,32 @@ function App() {
           )}
           
 
-
+          <footer
+            style={{
+              marginTop: '2rem',
+              padding: '1rem',
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: '#666',
+              backgroundColor: '#f8f8f8',
+              borderTop: '1px solid #ddd',
+            }}
+          >
+            © 2025 — This tool was developed by Zhejiang University in partnership with La Trobe University.
+            Please cite as: <br />
+            <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
+          </footer>
+          
           {selectedGenes.length === 0 && (
             <p style={{ fontStyle: 'italic', color: '#888', textIndent: '1.5rem' }}>
               Please select at least one gene, genotype, and cell type to view the table.
             </p>
           )}
         </div>
+
+
+
+        {/* Description sidebar */}
         <div
           className={`description-sidebar ${showDescriptions ? 'visible' : 'hidden'}`}
         >
@@ -550,10 +700,17 @@ function App() {
               );
             })}
           </ul>
+
+
+
         </div>
 
 
       </div>
+    
+
+
+
     </div>
   );
 }
