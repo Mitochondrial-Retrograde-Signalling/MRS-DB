@@ -564,45 +564,45 @@ function App() {
 
         <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
         {/* <h2>Main Content Area</h2> */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
-        <button
-          onClick={() => setShowDescriptions(prev => !prev)}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: 'white',
-            color: '#1a3c7c',
-            border: '2px solid #1a3c7c',
-            borderRadius: '6px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            transition: 'background 0.2s, color 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-        >
-          {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
-        </button>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+            <button
+              onClick={() => setShowDescriptions(prev => !prev)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: 'white',
+                color: '#1a3c7c',
+                border: '2px solid #1a3c7c',
+                borderRadius: '6px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                transition: 'background 0.2s, color 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+            >
+              {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+            </button>
 
-        <button
-          style={{
-            padding: '10px 16px',
-            backgroundColor: '#0b4ca3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            transition: 'background 0.2s'
-          }}
-          onClick={ downloadTPData }
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
-        >
-          Download
-        </button>
-      </div>
+            <button
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#0b4ca3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                transition: 'background 0.2s'
+              }}
+              onClick={ downloadTPData }
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+            >
+              Download
+            </button>
+          </div>
 
           {timepoints.length > 0 && (
             <div className="tab-bar">
@@ -632,13 +632,32 @@ function App() {
           )}
           
 
-
+          <footer
+            style={{
+              marginTop: '2rem',
+              padding: '1rem',
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: '#666',
+              backgroundColor: '#f8f8f8',
+              borderTop: '1px solid #ddd',
+            }}
+          >
+            © 2025 — This tool was developed by Zhejiang University in partnership with La Trobe University.
+            Please cite as: <br />
+            <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
+          </footer>
+          
           {selectedGenes.length === 0 && (
             <p style={{ fontStyle: 'italic', color: '#888', textIndent: '1.5rem' }}>
               Please select at least one gene, genotype, and cell type to view the table.
             </p>
           )}
         </div>
+
+
+
+        {/* Description sidebar */}
         <div
           className={`description-sidebar ${showDescriptions ? 'visible' : 'hidden'}`}
         >
@@ -681,10 +700,17 @@ function App() {
               );
             })}
           </ul>
+
+
+
         </div>
 
 
       </div>
+    
+
+
+
     </div>
   );
 }
