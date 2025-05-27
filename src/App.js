@@ -183,6 +183,8 @@ function App() {
     }
   };
   
+  // Check if all required selections are made
+  const hasAllSelections = selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList;
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
@@ -620,7 +622,34 @@ function App() {
               })}
             </div>
           )}
-          {selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList && (
+
+          {/* Placeholder message when not all selections are made */}
+          {!hasAllSelections && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '400px',
+              textAlign: 'center',
+              color: '#666',
+              fontSize: '1.2rem',
+              fontWeight: '500',
+              backgroundColor: '#f8f9fa',
+              border: '2px dashed #dee2e6',
+              borderRadius: '8px',
+              margin: '2rem'
+            }}>
+              <div>
+                <div>Please select a Gene List, Genes, Genotypes, and Cell Types to view data</div>
+                <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
+                  Use the filter panel on the left to make your selections
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Show table only when all selections are made */}
+          {hasAllSelections && (
             <GeneExpressionTable
               selectedGenes={selectedGenes}
               selectedGenotype={selectedGenotype}
