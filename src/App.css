@@ -48,8 +48,9 @@ html, body, #root {
   transition: width 0.3s ease, padding 0.3s ease;
   padding: 1rem;
   background-color: #f9f9f9;
-  overflow-y: auto;
+  overflow: visible;
   z-index: 100;
+  position: relative;
 }
 
 .sidebar.collapsed {
@@ -57,12 +58,11 @@ html, body, #root {
   padding: 1rem 6px;
 }
 
-/* === Toggle Button Fixed Outside Sidebar === */
+/* === Toggle Button on Sidebar Edge === */
 .toggle-button {
-  position: fixed;
-  top: 80px;
-  left: 50px;
-  transform: translateX(-50%);
+  position: absolute;
+  top: 10px;
+  right: -14px;
   background-color: #003f88;
   color: white;
   border: none;
@@ -77,10 +77,6 @@ html, body, #root {
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 200;
-}
-
-.sidebar.collapsed ~ .toggle-button {
-  left: 40px;
 }
 
 /* .toggle-button:hover {
@@ -116,6 +112,7 @@ html, body, #root {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .main-content.expanded {
