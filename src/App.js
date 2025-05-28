@@ -211,21 +211,19 @@ function App() {
           </button>
 
           {sidebarVisible && (
-            <>
+            <div className="sidebar-content">
               <h2 style={{ textAlign: 'center' }}>Filter Search</h2>
 
               {/* Gene List Dropdown */}
               <div className="search-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label>
-                    Gene List
-                  </label>
+                  <label>Gene List</label>
                   {selectedGeneList.length > 0 && (
                     <button
                       onClick={() => {
                         setSelectedGeneList([]);
-                        setSelectedGenes([]); // Reset selected genes
-                        setGeneLimitReached(false); // Also reset the limit warning if needed
+                        setSelectedGenes([]);
+                        setGeneLimitReached(false);
                       }}
                       style={{
                         fontSize: '0.75rem',
@@ -248,8 +246,8 @@ function App() {
                   onChange={(opt) => {
                     const newGeneList = opt?.value || '';
                     setSelectedGeneList(newGeneList);
-                    setSelectedGenes([]); // Reset selected genes
-                    setGeneLimitReached(false); // Also reset the limit warning if needed
+                    setSelectedGenes([]);
+                    setGeneLimitReached(false);
                   }}
                   placeholder="Select Gene List..."
                   isSearchable
@@ -559,9 +557,10 @@ function App() {
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
+
 
 
         <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
