@@ -17,3 +17,21 @@ papermill public/scripts/preprocess.ipynb \
 ```bash
 npm run build
 ```
+
+```bash
+npm start
+```
+
+## Render User-guide as PDF
+
+```
+sudo apt install fonts-inter
+
+sudo apt install texlive-xetex texlive-fonts-recommended texlive-latex-recommended
+
+xelatex --version
+```
+
+```
+quarto render Userguide.qmd --to pdf
+```
