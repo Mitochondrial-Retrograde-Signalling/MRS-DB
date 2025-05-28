@@ -47,12 +47,13 @@ html, body, #root {
   width: 280px;
   transition: width 0.3s ease, padding 0.3s ease;
   padding: 1rem;
-  /* padding-right: 30px; */
   background-color: #f9f9f9;
-  /* overflow: visible; */
-  overflow-y: auto;
+  /* NO overflow properties here - this prevents clipping */
   z-index: 100;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Full height */
 }
 
 .sidebar.collapsed {
@@ -60,11 +61,20 @@ html, body, #root {
   padding: 1rem 6px;
 }
 
+/* === Scrollable content area inside sidebar === */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto; /* Scrolling happens here instead */
+  overflow-x: hidden;
+  padding-right: 5px; /* Small padding for scrollbar */
+  height: 0; /* This forces the flex item to be constrained */
+}
+
 /* === Toggle Button on Sidebar Edge === */
 .toggle-button {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: -14px; /* Outside the sidebar - won't be clipped now */
   background-color: #003f88;
   color: white;
   border: none;
@@ -80,11 +90,6 @@ html, body, #root {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 200;
 }
-
-/* .toggle-button:hover {
-  background-color: #0059b3;
-  transform: scale(1.05);
-} */
 
 .toggle-button:focus {
   outline: none;
@@ -115,6 +120,7 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   position: relative;
+  margin-left: -20px; /* Compensate for sidebar margin */
 }
 
 .main-content.expanded {
