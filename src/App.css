@@ -54,6 +54,7 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   height: 100%; /* Full height */
+  box-shadow: 5px 0 8px rgba(12, 12, 12, 0.06);
 }
 
 .sidebar.collapsed {
@@ -121,6 +122,8 @@ html, body, #root {
   flex-direction: column;
   position: relative;
   margin-left: -20px; /* Compensate for sidebar margin */
+  background: #fff;
+  border-radius: 10px;
 }
 
 .main-content.expanded {
@@ -229,4 +232,13 @@ html, body, #root {
   font-size: 1rem;
   color: white;
   margin: 0 0.5rem;
+}
+
+button {
+  box-shadow: 0 2px 6px rgba(0,63,136,0.08);
+}
+
+.pill {
+  background: linear-gradient(90deg, #e6f0ff 60%, #f5faff 100%);
+  border: 1px solid #a3c2f7;
 }
