@@ -2,17 +2,17 @@
 title: "User Guide: Arabidopsis Web App"
 date: today
 format:
-  pdf:
+  typst:
     toc: true
     number-sections: true
     geometry: margin=1in
     fontsize: 11pt
     mainfont: Inter
     date-format: "long"
+    code-block:
+      line-wrapping: true
 ---
-
-
-\newpage
+{{< pagebreak >}}
 
 # Local Deployment of the Arabidopsis Web App
 This guide walks you through how to run the containerised version of the web application on a new local computer.
@@ -41,9 +41,7 @@ docker pull ghcr.io/miguel-abulencia/arabidopsis-reactjs
 Start the container using the following command:
 
 ```bash
-docker run -d -p 3000:80 \
-    --name arabidopsis-container \
-    ghcr.io/miguel-abulencia/arabidopsis-reactjs
+docker run -d -p 3000:80 --name arabidopsis-container ghcr.io/miguel-abulencia/arabidopsis-reactjs
 ```
 
 -  `-d` runs the container in the background
@@ -61,7 +59,7 @@ Once the container is running, open your web browser and navigate to:
 http://localhost:3000
 ```
 
-
+{{< pagebreak >}}
 
 # Navigating through the Arabidopsis Web App
 This guide provides a quick overview of how to explore and interact with the Arabidopsis Web App. It highlights key features, filters, and visualizations to help you make the most out of the data presented in the application.
