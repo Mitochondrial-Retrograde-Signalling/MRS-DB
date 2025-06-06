@@ -9,8 +9,6 @@ format:
     fontsize: 11pt
     mainfont: Inter
     date-format: "long"
-    code-block:
-      line-wrapping: true
 ---
 {{< pagebreak >}}
 
