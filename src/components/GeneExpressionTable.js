@@ -48,15 +48,23 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
         clusterSet.add('no_cluster');
       }
   
-      const clusterColumns = Array.from(clusterSet).sort().map(cluster =>
-        columnHelper.accessor(row => {
-          const key = `${cellType}__${cluster}`;
-          return row[key] ?? 'no data';
-        }, {
-          id: `${cellType}__${cluster}`,
-          header: cluster === 'no_cluster' ? 'No Cluster' : cluster.replace('log2FC_', '')
+      const clusterColumns = Array.from(clusterSet)
+        .sort((a, b) => {
+          // Extract numbers from cluster names, fallback to string compare if not numeric
+          const numA = parseInt(a.replace(/\D/g, ''), 10);
+          const numB = parseInt(b.replace(/\D/g, ''), 10);
+          if (isNaN(numA) || isNaN(numB)) return a.localeCompare(b);
+          return numA - numB;
         })
-      );
+        .map(cluster =>
+          columnHelper.accessor(row => {
+            const key = `${cellType}__${cluster}`;
+            return row[key] ?? 'no data';
+          }, {
+            id: `${cellType}__${cluster}`,
+            header: cluster === 'no_cluster' ? 'No Cluster' : cluster.replace('log2FC_', '')
+          })
+        );
   
       return columnHelper.group({
         id: cellType,
