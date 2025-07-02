@@ -31,7 +31,7 @@ After downloading, run the installer and follow the setup instructions. Once ins
 Use the command below to download the container image from the GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/miguel-abulencia/arabidopsis-reactjs
+docker pull ghcr.io/Mitochondrial-Retrograde-Signalling/MRS-DB
 ```
 
 
