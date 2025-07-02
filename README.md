@@ -1,4 +1,4 @@
-# Local Deployment of the Arabidopsis Web App
+# Local Deployment of the Mitochondrial Retrograde Signalling Database
 This guide walks you through how to run the containerized version of the web application on a new local computer.
 
 
@@ -16,7 +16,7 @@ After downloading, run the installer and follow the setup instructions. Once ins
 Use the command below to download the container image from the GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/miguel-abulencia/arabidopsis-reactjs
+docker pull ghcr.io/mitochondrial-retrograde-signalling/mrs-db
 ```
 
 
@@ -24,7 +24,7 @@ docker pull ghcr.io/miguel-abulencia/arabidopsis-reactjs
 Start the container using the following command:
 
 ```bash
-docker run -d -p 3000:80 --name arabidopsis-container ghcr.io/miguel-abulencia/arabidopsis-reactjs
+docker run -d -p 3000:80 --name mrs-db ghcr.io/mitochondrial-retrograde-signalling/mrs-db
 ```
 
 -  `-d` runs the container in the background
@@ -44,8 +44,8 @@ http://localhost:3000
 
 
 
-# Navigating through the Arabidopsis Web App
-This guide provides a quick overview of how to explore and interact with the Arabidopsis Web App. It highlights key features, filters, and visualizations to help you make the most out of the data presented in the application.
+# Navigating through the Mitochondrial Retrograde Signalling Database
+This guide provides a quick overview of how to explore and interact with the Mitochondrial Retrograde Signalling Database. It highlights key features, filters, and visualizations to help you make the most out of the data presented in the application.
 
 ## Landing Page
 ![](./public/images/landingPage.png){ width=100% height=40%}
