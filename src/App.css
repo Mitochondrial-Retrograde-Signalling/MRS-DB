@@ -124,6 +124,7 @@ html, body, #root {
   margin-left: -20px; /* Compensate for sidebar margin */
   background: #fff;
   border-radius: 10px;
+  justify-content: space-between;
 }
 
 .main-content.expanded {

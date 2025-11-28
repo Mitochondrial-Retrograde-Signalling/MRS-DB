@@ -562,153 +562,117 @@ function App() {
 
 
         <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
-        {/* <h2>Main Content Area</h2> */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
-            <button
-              onClick={() => setShowDescriptions(prev => !prev)}
-              style={{
-                padding: '10px 16px',
-                backgroundColor: 'white',
-                color: '#1a3c7c',
-                border: '2px solid #1a3c7c',
-                borderRadius: '6px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                transition: 'background 0.2s, color 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-            >
-              {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
-            </button>
+          <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {/* <h2>Main Content Area</h2> */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+              <button
+                onClick={() => setShowDescriptions(prev => !prev)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: 'white',
+                  color: '#1a3c7c',
+                  border: '2px solid #1a3c7c',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+              </button>
 
-            <button
-              style={{
-                padding: '10px 16px',
-                backgroundColor: '#0b4ca3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                transition: 'background 0.2s'
-              }}
-              onClick={ downloadTPData }
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
-            >
-              Download
-            </button>
-          </div>
-
-          {timepoints.length > 0 && (
-            <div className="tab-bar">
-              {timepoints.map(tp => {
-                const label = `${tp}h`;
-                return (
-                  <button
-                    key={label}
-                    className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
-                    onClick={() => setSelectedTimepoint(label)}
-                  >
-                    {timepointLabels[label] || label}
-                  </button>
-                );
-              })}
+              <button
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#0b4ca3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  transition: 'background 0.2s'
+                }}
+                onClick={ downloadTPData }
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+              >
+                Download
+              </button>
             </div>
-          )}
 
-          {/* Placeholder message when not all selections are made */}
-          {!hasAllSelections && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '400px',
-              textAlign: 'center',
-              color: '#666',
-              fontSize: '1.2rem',
-              fontWeight: '500',
-              backgroundColor: '#f8f9fa',
-              border: '2px dashed #dee2e6',
-              borderRadius: '8px',
-              margin: '2rem'
-            }}>
-              <div>
-                <div>Please select a Gene List, Genes, Genotypes, and Cell Types to view data</div>
-                <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
-                  Use the filter panel on the left to make your selections
+            {timepoints.length > 0 && (
+              <div className="tab-bar">
+                {timepoints.map(tp => {
+                  const label = `${tp}h`;
+                  return (
+                    <button
+                      key={label}
+                      className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
+                      onClick={() => setSelectedTimepoint(label)}
+                    >
+                      {timepointLabels[label] || label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Placeholder message when not all selections are made */}
+            {!hasAllSelections && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '400px',
+                textAlign: 'center',
+                color: '#666',
+                fontSize: '1.2rem',
+                fontWeight: '500',
+                backgroundColor: '#f8f9fa',
+                border: '2px dashed #dee2e6',
+                borderRadius: '8px',
+                margin: '2rem'
+              }}>
+                <div>
+                  <div>Please select a Gene List, Genes, Genotypes, and Cell Types to view data</div>
+                  <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
+                    Use the filter panel on the left to make your selections
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Show table only when all selections are made */}
-          {hasAllSelections && (
-            <GeneExpressionTable
-              selectedGenes={selectedGenes}
-              selectedGenotype={selectedGenotype}
-              selectedCellTypes={selectedCellTypes}
-              geneDetailsByGeneList={geneDetailsByGeneList}
-              selectedGeneList={selectedGeneList}
-              data={{ [selectedTimepoint]: data[selectedTimepoint] }}
-            />
-          )}
-          
+            {/* Show table only when all selections are made */}
+            {hasAllSelections && (
+              <GeneExpressionTable
+                selectedGenes={selectedGenes}
+                selectedGenotype={selectedGenotype}
+                selectedCellTypes={selectedCellTypes}
+                geneDetailsByGeneList={geneDetailsByGeneList}
+                selectedGeneList={selectedGeneList}
+                data={{ [selectedTimepoint]: data[selectedTimepoint] }}
+              />
+            )}
+          </div>
 
           <footer
             style={{
-              marginTop: '2rem',
-              padding: '1.5rem',
+              padding: '1rem',
               textAlign: 'center',
               fontSize: '0.85rem',
               color: '#666',
               backgroundColor: '#f8f8f8',
               borderTop: '1px solid #ddd',
+              flexShrink: 0,
+              marginTop: 'auto'
             }}
           >
-            <div style={{ marginBottom: '0.5rem' }}>
-              © 2025 — Developed by Zhejiang University
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <strong>Citation:</strong> If you use this tool in your research, please cite as:
-            </div>
-            <div
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                padding: '0.75rem',
-                marginBottom: '0.75rem',
-                lineHeight: '1.5',
-                fontSize: '0.8rem',
-              }}
-            >
-              <em>Your Name, et al. (2025). Title of the Study or Dataset. Zhejiang University. Retrieved from https://yourwebapp.url</em>
-            </div>
-            <button
-              onClick={() => {
-                const citation = "Your Name, et al. (2025). Title of the Study or Dataset. Zhejiang University. Retrieved from https://yourwebapp.url";
-                navigator.clipboard.writeText(citation);
-                toast.success('Citation copied to clipboard!', { autoClose: 2000 });
-              }}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#0b4ca3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
-            >
-              Copy Citation
-            </button>
+            If you use this tool in your research, please cite as: <br />
+            <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
           </footer>
         </div>
 
