@@ -196,8 +196,6 @@ function App() {
     <div className="app-wrapper">
       <header className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
         <img src="/zju-logo.png" alt="Zhejiang University Logo" style={{ height: '42px' }} />
-        <span className="partnership-text">in partnership with</span>
-        <img src="/latrobe-logo.svg" alt="La Trobe University Logo" style={{ height: '50px' }} />
       </header>
       
       <div className="app-container">
@@ -564,115 +562,116 @@ function App() {
 
 
         <div className={`main-content ${sidebarVisible ? '' : 'expanded'}`}>
-        {/* <h2>Main Content Area</h2> */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
-            <button
-              onClick={() => setShowDescriptions(prev => !prev)}
-              style={{
-                padding: '10px 16px',
-                backgroundColor: 'white',
-                color: '#1a3c7c',
-                border: '2px solid #1a3c7c',
-                borderRadius: '6px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                transition: 'background 0.2s, color 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-            >
-              {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
-            </button>
+          <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {/* <h2>Main Content Area</h2> */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
+              <button
+                onClick={() => setShowDescriptions(prev => !prev)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: 'white',
+                  color: '#1a3c7c',
+                  border: '2px solid #1a3c7c',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f8ff'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
+              </button>
 
-            <button
-              style={{
-                padding: '10px 16px',
-                backgroundColor: '#0b4ca3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                transition: 'background 0.2s'
-              }}
-              onClick={ downloadTPData }
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
-            >
-              Download
-            </button>
-          </div>
-
-          {timepoints.length > 0 && (
-            <div className="tab-bar">
-              {timepoints.map(tp => {
-                const label = `${tp}h`;
-                return (
-                  <button
-                    key={label}
-                    className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
-                    onClick={() => setSelectedTimepoint(label)}
-                  >
-                    {timepointLabels[label] || label}
-                  </button>
-                );
-              })}
+              <button
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#0b4ca3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  transition: 'background 0.2s'
+                }}
+                onClick={ downloadTPData }
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+              >
+                Download
+              </button>
             </div>
-          )}
 
-          {/* Placeholder message when not all selections are made */}
-          {!hasAllSelections && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '400px',
-              textAlign: 'center',
-              color: '#666',
-              fontSize: '1.2rem',
-              fontWeight: '500',
-              backgroundColor: '#f8f9fa',
-              border: '2px dashed #dee2e6',
-              borderRadius: '8px',
-              margin: '2rem'
-            }}>
-              <div>
-                <div>Please select a Gene List, Genes, Genotypes, and Cell Types to view data</div>
-                <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
-                  Use the filter panel on the left to make your selections
+            {timepoints.length > 0 && (
+              <div className="tab-bar">
+                {timepoints.map(tp => {
+                  const label = `${tp}h`;
+                  return (
+                    <button
+                      key={label}
+                      className={`tab-button ${selectedTimepoint === label ? 'active' : ''}`}
+                      onClick={() => setSelectedTimepoint(label)}
+                    >
+                      {timepointLabels[label] || label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Placeholder message when not all selections are made */}
+            {!hasAllSelections && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '400px',
+                textAlign: 'center',
+                color: '#666',
+                fontSize: '1.2rem',
+                fontWeight: '500',
+                backgroundColor: '#f8f9fa',
+                border: '2px dashed #dee2e6',
+                borderRadius: '8px',
+                margin: '2rem'
+              }}>
+                <div>
+                  <div>Please select a Gene List, Genes, Genotypes, and Cell Types to view data</div>
+                  <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
+                    Use the filter panel on the left to make your selections
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Show table only when all selections are made */}
-          {hasAllSelections && (
-            <GeneExpressionTable
-              selectedGenes={selectedGenes}
-              selectedGenotype={selectedGenotype}
-              selectedCellTypes={selectedCellTypes}
-              geneDetailsByGeneList={geneDetailsByGeneList}
-              selectedGeneList={selectedGeneList}
-              data={{ [selectedTimepoint]: data[selectedTimepoint] }}
-            />
-          )}
-          
+            {/* Show table only when all selections are made */}
+            {hasAllSelections && (
+              <GeneExpressionTable
+                selectedGenes={selectedGenes}
+                selectedGenotype={selectedGenotype}
+                selectedCellTypes={selectedCellTypes}
+                geneDetailsByGeneList={geneDetailsByGeneList}
+                selectedGeneList={selectedGeneList}
+                data={{ [selectedTimepoint]: data[selectedTimepoint] }}
+              />
+            )}
+          </div>
 
           <footer
             style={{
-              marginTop: '2rem',
               padding: '1rem',
               textAlign: 'center',
               fontSize: '0.85rem',
               color: '#666',
               backgroundColor: '#f8f8f8',
               borderTop: '1px solid #ddd',
+              flexShrink: 0,
+              marginTop: 'auto'
             }}
           >
-            © 2025 — This tool was developed by Zhejiang University in partnership with La Trobe University.
-            Please cite as: <br />
+            If you use this tool in your research, please cite as: <br />
             <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
           </footer>
         </div>
