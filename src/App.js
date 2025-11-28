@@ -196,8 +196,6 @@ function App() {
     <div className="app-wrapper">
       <header className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
         <img src="/zju-logo.png" alt="Zhejiang University Logo" style={{ height: '42px' }} />
-        <span className="partnership-text">in partnership with</span>
-        <img src="/latrobe-logo.svg" alt="La Trobe University Logo" style={{ height: '50px' }} />
       </header>
       
       <div className="app-container">
@@ -663,7 +661,7 @@ function App() {
           <footer
             style={{
               marginTop: '2rem',
-              padding: '1rem',
+              padding: '1.5rem',
               textAlign: 'center',
               fontSize: '0.85rem',
               color: '#666',
@@ -671,9 +669,46 @@ function App() {
               borderTop: '1px solid #ddd',
             }}
           >
-            © 2025 — This tool was developed by Zhejiang University in partnership with La Trobe University.
-            Please cite as: <br />
-            <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
+            <div style={{ marginBottom: '0.5rem' }}>
+              © 2025 — Developed by Zhejiang University
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Citation:</strong> If you use this tool in your research, please cite as:
+            </div>
+            <div
+              style={{
+                backgroundColor: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                padding: '0.75rem',
+                marginBottom: '0.75rem',
+                lineHeight: '1.5',
+                fontSize: '0.8rem',
+              }}
+            >
+              <em>Your Name, et al. (2025). Title of the Study or Dataset. Zhejiang University. Retrieved from https://yourwebapp.url</em>
+            </div>
+            <button
+              onClick={() => {
+                const citation = "Your Name, et al. (2025). Title of the Study or Dataset. Zhejiang University. Retrieved from https://yourwebapp.url";
+                navigator.clipboard.writeText(citation);
+                toast.success('Citation copied to clipboard!', { autoClose: 2000 });
+              }}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#0b4ca3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#093f88'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0b4ca3'}
+            >
+              Copy Citation
+            </button>
           </footer>
         </div>
 
