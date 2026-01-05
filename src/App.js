@@ -672,7 +672,7 @@ function App() {
             }}
           >
             If you use this tool in your research, please cite as: <br />
-            <em>Your Name, et al. (2025). <u>Title of the Study or Dataset</u>. Retrieved from https://yourwebapp.url</em>
+            Single nuceli and spatial transcriptome reveals heterogeneous, polarized and spatial aspects of mitochondrial retrograde signalling in <em>Arabidopsis thaliana</em> (<u>link to be inserted when publication submitted/accepted</u>).
           </footer>
         </div>
 
