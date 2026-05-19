@@ -43,20 +43,28 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
         });
       });
   
-      // ✅ If nothing was found at all for this cell type, still show a placeholder
+      // If nothing was found at all for this cell type, still show a placeholder
       if (clusterSet.size === 0) {
         clusterSet.add('no_cluster');
       }
   
-      const clusterColumns = Array.from(clusterSet).sort().map(cluster =>
-        columnHelper.accessor(row => {
-          const key = `${cellType}__${cluster}`;
-          return row[key] ?? 'no data';
-        }, {
-          id: `${cellType}__${cluster}`,
-          header: cluster === 'no_cluster' ? 'No Cluster' : cluster.replace('log2FC_', '')
+      const clusterColumns = Array.from(clusterSet)
+        .sort((a, b) => {
+          // Extract numbers from cluster names, fallback to string compare if not numeric
+          const numA = parseInt(a.replace(/\D/g, ''), 10);
+          const numB = parseInt(b.replace(/\D/g, ''), 10);
+          if (isNaN(numA) || isNaN(numB)) return a.localeCompare(b);
+          return numA - numB;
         })
-      );
+        .map(cluster =>
+          columnHelper.accessor(row => {
+            const key = `${cellType}__${cluster}`;
+            return row[key] ?? 'no data';
+          }, {
+            id: `${cellType}__${cluster}`,
+            header: cluster === 'no_cluster' ? 'No Cluster' : cluster.replace('log2FC_', '')
+          })
+        );
   
       return columnHelper.group({
         id: cellType,
@@ -139,7 +147,12 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
   return (
     <div className="table-container">
       <div style={{ minWidth: 'max-content', position: 'relative', padding: '0 2rem' }}>
-        <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 'max-content' }}>
+        <table style={{ 
+          borderCollapse: 'separate', // Change from 'collapse' to 'separate'
+          borderSpacing: 0, // Remove gaps between cells
+          tableLayout: 'fixed', 
+          minWidth: 'max-content' 
+        }}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -157,7 +170,7 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
                     colSpan={header.colSpan}
                     rowSpan={rowSpan}
                     style={{
-                      border: '1px solid #ccc',
+                      border: '1px solid #000',
                       background: '#f0f0f0',
                       backgroundColor: '#f0f0f0',
                       padding: '8px',
@@ -183,19 +196,31 @@ function GeneExpressionTable({ selectedGenes, selectedGenotype, selectedCellType
             </tr>
           ))}
         </thead>
-
           <tbody>
-            {table.getRowModel().rows.map(row => {
-              const borderTop = row.original.isFirst ? '2px solid black' : '1px solid #b0b0b0';
-              const borderBottom = row.original.isLast ? '2px solid black' : '1px solid #b0b0b0';
+            {table.getRowModel().rows.map((row, rowIndex) => {
+              const isFirstRow = rowIndex === 0;
+              const isLastRow = rowIndex === table.getRowModel().rows.length - 1;
+              const isFirstInGroup = row.original.isFirst;
+              const isLastInGroup = row.original.isLast;
+              
+              // Adjust border logic for border-separate
+              const borderTop = isFirstRow ? '2px solid black' : 
+                              isFirstInGroup ? '1px solid black' : 
+                              '0px'; // Remove normal top borders to prevent doubling
+              
+              const borderBottom = isLastRow ? '1px solid black' : 
+                                  isLastInGroup ? '1px solid black' : 
+                                  '1px solid #000000';
+              
               const borderLR = '1px solid black';
+              
               const groupRowStyle = {
                 borderTop,
                 borderBottom,
                 borderLeft: borderLR,
                 borderRight: borderLR,
                 whiteSpace: 'nowrap',
-                width: '120px'
+                width: '120px',
               };
 
               return (

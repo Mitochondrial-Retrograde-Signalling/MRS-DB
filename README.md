@@ -1,70 +1,71 @@
-# Getting Started with Create React App
+# Local Deployment of the Mitochondrial Retrograde Signalling Database
+This guide walks you through how to run the containerized version of the web application on a new local computer.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+## 1. Download and Install Docker Desktop
+Download the Docker Desktop installer that matches your operating system from the official Docker website:
 
-In the project directory, you can run:
+https://www.docker.com/products/docker-desktop/
 
-### `npm start`
+After downloading, run the installer and follow the setup instructions. Once installed, make sure Docker Desktop is running—you should see the Docker icon in your system tray or menu bar.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![](public/images/dockerRunning.png){ width=40% height=15% }
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
 
-### `npm test`
+## 2. Pull docker container
+Use the command below to download the container image from the GitHub Container Registry:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+docker pull ghcr.io/mitochondrial-retrograde-signalling/mrs-db
+```
 
-### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 3. Run the docker container
+Start the container using the following command:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+docker run -d -p 3000:80 --name mrs-db ghcr.io/mitochondrial-retrograde-signalling/mrs-db
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+-  `-d` runs the container in the background
 
-### `npm run eject`
+- `-p 3000:80` maps your local port 3000 to the container’s port 80
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- `--name` gives the container a readable name
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 4. View the Web App
+Once the container is running, open your web browser and navigate to:
 
-## Learn More
+```
+http://localhost:3000
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
 
-### Code Splitting
+# Navigating through the Mitochondrial Retrograde Signalling Database
+This guide provides a quick overview of how to explore and interact with the Mitochondrial Retrograde Signalling Database. It highlights key features, filters, and visualizations to help you make the most out of the data presented in the application.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Landing Page
+![](./public/images/landingPage.png){ width=100% height=40%}
 
-### Analyzing the Bundle Size
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Filter Sidebar
+The filter sidebar, which can be toggled on or off using the button with the `<` or `>` button, allows you to narrow down the data displayed in the web app through a set of intuitive search bars. You can apply filters based on the following criteria:
 
-### Making a Progressive Web App
+- **Gene List** – Select from predefined gene lists to focus your analysis.
+- **Genotype** – Filter data by one or more genotypes of interest.
+- **Genes** – Search and select specific genes to visualize. *Note: A maximum of 10 genes can be selected at a time.*
+- **Cell Types** – Choose relevant cell types to refine the results.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Timepoint tabs
+The Timepoint tabs allow you to toggle between different timepoints in the dataset. Selecting a tab displays a heatmap corresponding to that specific timepoint, visualizing gene expression levels based on your selected filters.
 
-### Advanced Configuration
+> Note: Clusters with the same name across different timepoints are distinct and should not be compared directly, as they may represent different underlying cell populations.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Description Sidebar
+The Description Sidebar can be accessed by clicking the **"View Gene Descriptions"** button. It provides additional information about the selected genes, including gene names, functional descriptions, and other relevant annotations.
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Download button
+The **Download** button allows you to export data for the currently selected genes at the active timepoint. The data is downloaded in `.xlsx` (Excel) format, making it easy to view, share, or analyze offline.

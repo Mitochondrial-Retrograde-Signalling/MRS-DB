@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap');
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -46,8 +48,13 @@ html, body, #root {
   transition: width 0.3s ease, padding 0.3s ease;
   padding: 1rem;
   background-color: #f9f9f9;
-  overflow-y: auto;
+  /* NO overflow properties here - this prevents clipping */
   z-index: 100;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Full height */
+  box-shadow: 5px 0 8px rgba(12, 12, 12, 0.06);
 }
 
 .sidebar.collapsed {
@@ -55,12 +62,20 @@ html, body, #root {
   padding: 1rem 6px;
 }
 
-/* === Toggle Button Fixed Outside Sidebar === */
+/* === Scrollable content area inside sidebar === */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto; /* Scrolling happens here instead */
+  overflow-x: hidden;
+  padding-right: 5px; /* Small padding for scrollbar */
+  height: 0; /* This forces the flex item to be constrained */
+}
+
+/* === Toggle Button on Sidebar Edge === */
 .toggle-button {
-  position: fixed;
-  top: 80px;
-  left: 50px;
-  transform: translateX(-50%);
+  position: absolute;
+  top: 10px;
+  right: -14px; /* Outside the sidebar - won't be clipped now */
   background-color: #003f88;
   color: white;
   border: none;
@@ -75,15 +90,6 @@ html, body, #root {
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 200;
-}
-
-.sidebar.collapsed ~ .toggle-button {
-  left: 40px;
-}
-
-.toggle-button:hover {
-  background-color: #0059b3;
-  transform: scale(1.05);
 }
 
 .toggle-button:focus {
@@ -114,6 +120,11 @@ html, body, #root {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  margin-left: -20px; /* Compensate for sidebar margin */
+  background: #fff;
+  border-radius: 10px;
+  justify-content: space-between;
 }
 
 .main-content.expanded {
@@ -131,7 +142,7 @@ html, body, #root {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 1rem;
-  padding: 10px 0;
+  padding: 12px 20px;
   border-bottom: 1px solid #ddd;
 }
 
@@ -215,4 +226,20 @@ html, body, #root {
 
 .description-sidebar.hidden {
   transform: translateX(100%);
+}
+
+.partnership-text {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1rem;
+  color: white;
+  margin: 0 0.5rem;
+}
+
+button {
+  box-shadow: 0 2px 6px rgba(0,63,136,0.08);
+}
+
+.pill {
+  background: linear-gradient(90deg, #e6f0ff 60%, #f5faff 100%);
+  border: 1px solid #a3c2f7;
 }
