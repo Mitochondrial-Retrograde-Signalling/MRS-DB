@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Select from 'react-select';
 import { matchSorter } from 'match-sorter';
 import './App.css';
 import { toast } from 'react-toastify';
 import GeneExpressionTable from './components/GeneExpressionTable';
+import PlotDisplay from './components/PlotDisplay';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import * as XLSX from "xlsx";
 
@@ -23,6 +24,10 @@ function App() {
   const cellTypeOptions = [{ value: '*', label: 'Select All' }, ...cellTypes.map(ct => ({ value: ct, label: ct }))];
   const [showCitation, setShowCitation] = useState(false);
   const [geneSearchInput, setGeneSearchInput] = useState('');
+  const [activePlotTab, setActivePlotTab] = useState('table'); // 'table' | 'dotplot' | 'umap'
+  const [plotData, setPlotData] = useState(null);   // { plotType, image?, data? }
+  const [plotLoading, setPlotLoading] = useState(false);
+  const [plotError, setPlotError] = useState(null);
 
 
   const [data, setData] = useState({});
@@ -183,8 +188,60 @@ function App() {
     }
   };
   
+  const API_BASE = 'http://localhost:8000';
+
   // Check if all required selections are made
   const hasAllSelections = selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList;
+
+  const fetchPlot = useCallback(async (plotType) => {
+    if (!hasAllSelections) return;
+    setPlotLoading(true);
+    setPlotError(null);
+    try {
+      const body = {
+        plotType,
+        genes: selectedGenes,
+        genotypes: selectedGenotype,
+        cellTypes: selectedCellTypes,
+        timepoint: selectedTimepoint,
+      };
+      if (plotType === 'umap' && selectedGenes.length > 0) {
+        body.gene = selectedGenes[0]; // UMAP uses single gene
+      }
+      const res = await fetch(`${API_BASE}/api/plot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setPlotData(data);
+      setActivePlotTab(plotType);
+    } catch (err) {
+      setPlotError(err.message);
+      setPlotData(null);
+    } finally {
+      setPlotLoading(false);
+    }
+  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint]);
+
+  // Fetch plot when tab is switched to a plot type OR when filters change while on a plot tab
+  useEffect(() => {
+    if (activePlotTab === 'dotplot' && hasAllSelections) {
+      fetchPlot('dotplot');
+    } else if (activePlotTab === 'umap' && hasAllSelections) {
+      fetchPlot('umap');
+    }
+  }, [activePlotTab, hasAllSelections, fetchPlot]);
+
+  // Clear stale plot data when filter selections change
+  useEffect(() => {
+    setPlotData(null);
+    setPlotError(null);
+  }, [selectedGenes, selectedGenotype, selectedCellTypes]);
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
@@ -604,6 +661,32 @@ function App() {
               </button>
             </div>
 
+            {/* ── Plot Type Tab Bar ── */}
+            {hasAllSelections && (
+              <div className="plot-tab-bar">
+                <button
+                  className={`plot-tab-button ${activePlotTab === 'table' ? 'active' : ''}`}
+                  onClick={() => { setActivePlotTab('table'); setPlotData(null); setPlotError(null); }}
+                >
+                  Table
+                </button>
+                <button
+                  className={`plot-tab-button ${activePlotTab === 'dotplot' ? 'active' : ''}`}
+                  onClick={() => setActivePlotTab('dotplot')}
+                  disabled={plotLoading}
+                >
+                  Dotplot
+                </button>
+                <button
+                  className={`plot-tab-button ${activePlotTab === 'umap' ? 'active' : ''}`}
+                  onClick={() => setActivePlotTab('umap')}
+                  disabled={plotLoading}
+                >
+                  UMAP
+                </button>
+              </div>
+            )}
+
             {timepoints.length > 0 && (
               <div className="tab-bar">
                 {timepoints.map(tp => {
@@ -646,8 +729,8 @@ function App() {
               </div>
             )}
 
-            {/* Show table only when all selections are made */}
-            {hasAllSelections && (
+            {/* Show table or plot based on active tab */}
+            {hasAllSelections && activePlotTab === 'table' && (
               <GeneExpressionTable
                 selectedGenes={selectedGenes}
                 selectedGenotype={selectedGenotype}
@@ -655,6 +738,14 @@ function App() {
                 geneDetailsByGeneList={geneDetailsByGeneList}
                 selectedGeneList={selectedGeneList}
                 data={{ [selectedTimepoint]: data[selectedTimepoint] }}
+              />
+            )}
+
+            {hasAllSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
+              <PlotDisplay
+                plotData={plotData}
+                loading={plotLoading}
+                error={plotError}
               />
             )}
           </div>

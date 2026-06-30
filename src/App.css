@@ -243,3 +243,96 @@ button {
   background: linear-gradient(90deg, #e6f0ff 60%, #f5faff 100%);
   border: 1px solid #a3c2f7;
 }
+
+/* ── Plot Type Tab Bar ── */
+.plot-tab-bar {
+  display: flex;
+  gap: 2px;
+  margin: 0 1.5rem 0 1.5rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.plot-tab-button {
+  padding: 10px 24px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: -2px;
+}
+
+.plot-tab-button:hover {
+  background: #e9ecef;
+  color: #212529;
+}
+
+.plot-tab-button.active {
+  background: white;
+  color: #0b4ca3;
+  border-color: #dee2e6 #dee2e6 white;
+  border-bottom: 2px solid white;
+}
+
+.plot-tab-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Plot Display ── */
+.plot-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  padding: 1rem;
+  margin: 0 1.5rem;
+  background: #fafafa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.plot-loading {
+  text-align: center;
+  color: #6c757d;
+}
+
+.plot-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #dee2e6;
+  border-top: 4px solid #0b4ca3;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.plot-error {
+  text-align: center;
+  color: #dc3545;
+  max-width: 500px;
+}
+
+.plot-error .error-message {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #6c757d;
+  background: #fff3f3;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.plot-placeholder {
+  text-align: center;
+  color: #adb5bd;
+}
