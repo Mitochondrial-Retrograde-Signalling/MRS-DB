@@ -679,7 +679,7 @@ function App() {
                   className={`plot-tab-button ${activePlotTab === 'table' ? 'active' : ''}`}
                   onClick={() => { setActivePlotTab('table'); setPlotData(null); setPlotError(null); }}
                 >
-                  Table
+                  Heatmap
                 </button>
                 <button
                   className={`plot-tab-button ${activePlotTab === 'dotplot' ? 'active' : ''}`}
