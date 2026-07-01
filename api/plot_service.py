@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 import matplotlib
@@ -146,12 +147,92 @@ def generate_dotplot(
 
 # ── UMAP Feature Plot ────────────────────────────────────────────────────────
 
+def _build_group_traces(
+    group_name: str,
+    group_mask: np.ndarray,
+    all_expr: np.ndarray,
+    all_umap: np.ndarray,
+    display_name: str,
+    row: int,
+    col: int,
+    is_last_group: bool,
+) -> tuple[int, int, int, Optional[go.Scatter], Optional[go.Scatter]]:
+    """Build NA + valid-expression traces for a single group (thread-safe).
+
+    All inputs are raw numpy arrays — no AnnData interaction inside this
+    function, so it's safe to call from multiple threads (numpy releases
+    the GIL during arithmetic).
+
+    Returns:
+        Tuple of (group_index, row, col, na_trace_or_None, valid_trace).
+    """
+    expr_values = all_expr[group_mask]
+    umap_coords = all_umap[group_mask]
+
+    na_mask = expr_values <= NA_CUTOFF
+    valid_mask = ~na_mask
+
+    # ── NA trace (solid lightgray, rendered behind valid points) ──
+    na_trace = None
+    if na_mask.any():
+        na_trace = go.Scatter(
+            x=umap_coords[na_mask, 0],
+            y=umap_coords[na_mask, 1],
+            mode="markers",
+            marker=dict(size=3, color=NA_COLOR),
+            name=f"{group_name} (NA)",
+            showlegend=False,
+            hovertemplate=(
+                f"UMAP1: %{{x:.2f}}<br>"
+                f"UMAP2: %{{y:.2f}}<br>"
+                f"{display_name}: ≤ {NA_CUTOFF}<br>"
+                f"Group: {group_name}<extra></extra>"
+            ),
+        )
+
+    # ── Valid-expression trace (Plasma_r colorscale) ──
+    valid_expr = expr_values[valid_mask]
+    has_valid = valid_mask.any()
+
+    valid_trace = go.Scatter(
+        x=umap_coords[valid_mask, 0],
+        y=umap_coords[valid_mask, 1],
+        mode="markers",
+        marker=dict(
+            size=3,
+            color=valid_expr if has_valid else None,
+            colorscale="Plasma_r",
+            colorbar=dict(title="Expression") if is_last_group else None,
+            cmin=np.nanmin(valid_expr) if has_valid else 0,
+            cmax=np.nanmax(valid_expr) if has_valid else 1,
+            showscale=is_last_group,
+        ),
+        name=group_name,
+        hovertemplate=(
+            f"UMAP1: %{{x:.2f}}<br>"
+            f"UMAP2: %{{y:.2f}}<br>"
+            f"{display_name}: %{{marker.color:.4f}}<br>"
+            f"Group: {group_name}<extra></extra>"
+        ),
+    )
+
+    return (row, col, na_trace, valid_trace)
+
+
 def generate_umap(
     adata: AnnData,
     gene: str,
     gene_label: Optional[str] = None,
 ) -> dict:
     """Generate a UMAP feature plot as Plotly JSON (interactive).
+
+    Optimized with two strategies:
+      1. Pre-compute: extract expression, UMAP coords, and group labels
+         for all cells in a single pass (avoids expensive per-group
+         AnnData subsetting / reindexing).
+      2. Multi-threaded trace building: use ThreadPoolExecutor to build
+         Plotly Scatter traces in parallel (numpy releases the GIL during
+         masking + arithmetic).  Figure mutation is still single-threaded.
 
     Args:
         adata: AnnData object (already subset by timepoint).
@@ -167,11 +248,17 @@ def generate_umap(
 
     display_name = gene_label if gene_label else gene
 
+    # ── Pre-compute all data ONCE (avoid per-group AnnData subsetting) ──
+    all_expr = adata.obs_vector(gene).astype(float)
+    all_umap = adata.obsm["X_umap"]
+    all_groups = adata.obs["group"].values  # numpy array, fast boolean indexing
+
     unique_groups = sorted(adata.obs["group"].unique())
+    n_groups = len(unique_groups)
 
     # ── Build Plotly subplots (one per group) using make_subplots ──
-    ncols = min(len(unique_groups), 4)
-    nrows = int(np.ceil(len(unique_groups) / ncols))
+    ncols = min(n_groups, 4)
+    nrows = int(np.ceil(n_groups / ncols))
 
     subplot_titles = [f"{display_name} - {g}" for g in unique_groups]
 
@@ -181,71 +268,45 @@ def generate_umap(
         subplot_titles=subplot_titles,
     )
 
-    for i, group_name in enumerate(unique_groups):
-        adata_sub = adata[adata.obs["group"] == group_name].copy()
+    # ── Build traces in parallel (ThreadPoolExecutor) ──
+    # numpy masking / boolean indexing releases the GIL, so threading
+    # gives real speedup for compute-bound trace construction.
+    max_workers = min(n_groups, 4)
+    futures: dict = {}
 
-        # Pull expression values (from test.ipynb Cell 9)
-        expr_values = adata_sub.obs_vector(gene).astype(float)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for i, group_name in enumerate(unique_groups):
+            group_mask = all_groups == group_name
+            row = i // ncols + 1
+            col = i % ncols + 1
+            is_last = i == n_groups - 1
 
-        umap_coords = adata_sub.obsm["X_umap"]
-
-        row = i // ncols + 1
-        col = i % ncols + 1
-
-        # Split into NA (low-expression) and valid points, matching
-        # test.ipynb behaviour where cmap.set_bad(color=na_color) renders
-        # NaN cells as lightgray.
-        na_mask = expr_values <= NA_CUTOFF
-        valid_mask = ~na_mask
-
-        # ── NA trace (solid lightgray, rendered behind valid points) ──
-        if na_mask.any():
-            na_trace = go.Scatter(
-                x=umap_coords[na_mask, 0],
-                y=umap_coords[na_mask, 1],
-                mode="markers",
-                marker=dict(
-                    size=3,
-                    color=NA_COLOR,
-                ),
-                name=f"{group_name} (NA)",
-                showlegend=False,
-                hovertemplate=(
-                    f"UMAP1: %{{x:.2f}}<br>"
-                    f"UMAP2: %{{y:.2f}}<br>"
-                    f"{display_name}: ≤ {NA_CUTOFF}<br>"
-                    f"Group: {group_name}<extra></extra>"
-                ),
+            future = executor.submit(
+                _build_group_traces,
+                group_name,
+                group_mask,
+                all_expr,
+                all_umap,
+                display_name,
+                row,
+                col,
+                is_last,
             )
-            fig.add_trace(na_trace, row=row, col=col)
+            futures[future] = i  # preserve original ordering
 
-        # ── Valid-expression trace (Plasma_r colorscale) ──
-        valid_expr = expr_values[valid_mask]
-        has_valid = valid_mask.any()
+        # ── Add traces to figure (single-threaded — Plotly is not thread-safe) ──
+        # Collect results and sort by original group index
+        results = []
+        for future in as_completed(futures):
+            results.append(future.result())
 
-        trace = go.Scatter(
-            x=umap_coords[valid_mask, 0],
-            y=umap_coords[valid_mask, 1],
-            mode="markers",
-            marker=dict(
-                size=3,
-                color=valid_expr if has_valid else None,
-                colorscale="Plasma_r",
-                colorbar=dict(title="Expression") if i == len(unique_groups) - 1 else None,
-                cmin=np.nanmin(valid_expr) if has_valid else 0,
-                cmax=np.nanmax(valid_expr) if has_valid else 1,
-                showscale=(i == len(unique_groups) - 1),
-            ),
-            name=group_name,
-            hovertemplate=(
-                f"UMAP1: %{{x:.2f}}<br>"
-                f"UMAP2: %{{y:.2f}}<br>"
-                f"{display_name}: %{{marker.color:.4f}}<br>"
-                f"Group: {group_name}<extra></extra>"
-            ),
-        )
+        # Sort by original group order (row, col)
+        results.sort(key=lambda r: (r[0], r[1]))
 
-        fig.add_trace(trace, row=row, col=col)
+        for row, col, na_trace, valid_trace in results:
+            if na_trace is not None:
+                fig.add_trace(na_trace, row=row, col=col)
+            fig.add_trace(valid_trace, row=row, col=col)
 
     # ── Layout ──
     fig.update_layout(
