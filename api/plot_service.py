@@ -36,30 +36,19 @@ VIRIDIS_OPTION = "viridis"
 def generate_dotplot(
     adata: AnnData,
     genes: list[str],
-    cell_types: list[str],
-    genotypes: list[str],
+    gene_labels: Optional[dict[str, str]] = None,
 ) -> dict:
     """Generate a faceted dotplot as a base64-encoded PNG.
 
     Args:
         adata: AnnData object (already subset by timepoint).
-        genes: List of gene symbols (1-10).
-        cell_types: Cell types to include (filters adata.obs['celltype']).
-        genotypes: Genotypes/groups to include (filters adata.obs['group'],
-            used as split_by for faceting).
+        genes: List of GeneNames (1-10) matching adata.var_names.
+        gene_labels: Optional mapping from GeneName → display label,
+            e.g. {'RPS19.1': 'ATCG00820 (RPS19.1)'}. Falls back to GeneName.
 
     Returns:
         Dict with keys: image (base64 str), format ("png"), width, height.
     """
-    # Subset by cell type and genotype
-    mask = (
-        adata.obs["celltype"].isin(cell_types)
-        & adata.obs["group"].isin(genotypes)
-    )
-    adata_sub = adata[mask].copy()
-
-    if adata_sub.n_obs == 0:
-        raise ValueError("No observations remain after filtering by cell type and genotype")
 
     # Verify all genes exist
     missing = [g for g in genes if g not in adata.var_names]
@@ -67,8 +56,8 @@ def generate_dotplot(
         raise ValueError(f"Gene(s) not found: {', '.join(missing)}")
 
     # ── Build the plot data (from test.ipynb Cell 7: facet_dot_plot) ──
-    expr_matrix = adata_sub[:, genes].to_df()
-    metadata = adata_sub.obs[["celltype", "group"]].copy()
+    expr_matrix = adata[:, genes].to_df()
+    metadata = adata.obs[["celltype", "group"]].copy()
     df = pd.concat([expr_matrix, metadata], axis=1)
 
     df_long = df.melt(
@@ -77,6 +66,10 @@ def generate_dotplot(
         var_name="gene",
         value_name="expr",
     )
+
+    # Apply gene display labels if provided
+    if gene_labels:
+        df_long["gene"] = df_long["gene"].map(lambda g: gene_labels.get(g, g))
 
     plot_data = (
         df_long.groupby(["celltype", "group", "gene"])
@@ -156,16 +149,15 @@ def generate_dotplot(
 def generate_umap(
     adata: AnnData,
     gene: str,
-    cell_types: list[str],
-    genotypes: list[str],
+    gene_label: Optional[str] = None,
 ) -> dict:
     """Generate a UMAP feature plot as Plotly JSON (interactive).
 
     Args:
         adata: AnnData object (already subset by timepoint).
-        gene: Single gene symbol to color by.
-        cell_types: Cell types to include.
-        genotypes: Genotypes/groups to include (each gets its own subplot).
+        gene: Single GeneName matching adata.var_names to color by.
+        gene_label: Optional display label for the gene, e.g. 'ATCG00820 (RPS19.1)'.
+            Falls back to `gene` if not provided.
 
     Returns:
         Dict with keys: data (Plotly figure JSON), format ("plotly_json").
@@ -173,23 +165,15 @@ def generate_umap(
     if gene not in adata.var_names:
         raise ValueError(f"Gene '{gene}' not found in dataset")
 
-    # Subset by cell type and genotype
-    mask = (
-        adata.obs["celltype"].isin(cell_types)
-        & adata.obs["group"].isin(genotypes)
-    )
-    adata_base = adata[mask].copy()
+    display_name = gene_label if gene_label else gene
 
-    if adata_base.n_obs == 0:
-        raise ValueError("No observations remain after filtering")
-
-    unique_groups = sorted(adata_base.obs["group"].unique())
+    unique_groups = sorted(adata.obs["group"].unique())
 
     # ── Build Plotly subplots (one per group) using make_subplots ──
     ncols = min(len(unique_groups), 4)
     nrows = int(np.ceil(len(unique_groups) / ncols))
 
-    subplot_titles = [f"{gene} - {g}" for g in unique_groups]
+    subplot_titles = [f"{display_name} - {g}" for g in unique_groups]
 
     fig = make_subplots(
         rows=nrows,
@@ -198,7 +182,7 @@ def generate_umap(
     )
 
     for i, group_name in enumerate(unique_groups):
-        adata_sub = adata_base[adata_base.obs["group"] == group_name].copy()
+        adata_sub = adata[adata.obs["group"] == group_name].copy()
 
         # Pull expression values and mask low values (from test.ipynb Cell 9)
         expr_values = adata_sub.obs_vector(gene).astype(float)
@@ -226,7 +210,7 @@ def generate_umap(
             hovertemplate=(
                 f"UMAP1: %{{x:.2f}}<br>"
                 f"UMAP2: %{{y:.2f}}<br>"
-                f"{gene}: %{{marker.color:.4f}}<br>"
+                f"{display_name}: %{{marker.color:.4f}}<br>"
                 f"Group: {group_name}<extra></extra>"
             ),
         )
@@ -235,7 +219,7 @@ def generate_umap(
 
     # ── Layout ──
     fig.update_layout(
-        title=f"UMAP — {gene}",
+        title=f"UMAP — {display_name}",
         showlegend=False,
         hovermode="closest",
         template="plotly_white",

@@ -198,15 +198,26 @@ function App() {
     setPlotLoading(true);
     setPlotError(null);
     try {
+      // Build GeneName list and geneLabels mapping from selected Gene IDs
+      const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
+      const geneLabels = {};
+      const geneNames = selectedGenes.map(geneId => {
+        const details = detailsMap[geneId];
+        const geneName = details?.name || geneId;  // Fallback to Gene ID if no GeneName
+        geneLabels[geneName] = details?.label || geneId;  // "GeneID (GeneName)" or just GeneID
+        return geneName;
+      });
+
       const body = {
         plotType,
-        genes: selectedGenes,
+        genes: geneNames,
+        geneLabels: geneLabels,
         genotypes: selectedGenotype,
         cellTypes: selectedCellTypes,
         timepoint: selectedTimepoint,
       };
-      if (plotType === 'umap' && selectedGenes.length > 0) {
-        body.gene = selectedGenes[0]; // UMAP uses single gene
+      if (plotType === 'umap' && geneNames.length > 0) {
+        body.gene = geneNames[0];
       }
       const res = await fetch(`${API_BASE}/api/plot`, {
         method: 'POST',
@@ -226,7 +237,7 @@ function App() {
     } finally {
       setPlotLoading(false);
     }
-  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint]);
+  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList]);
 
   // Fetch plot when tab is switched to a plot type OR when filters change while on a plot tab
   useEffect(() => {

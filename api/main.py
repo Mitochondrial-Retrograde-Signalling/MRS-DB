@@ -112,17 +112,19 @@ async def plot_endpoint(req: PlotRequest):
             result = generate_dotplot(
                 adata=adata,
                 genes=req.genes,
-                cell_types=req.cellTypes,
-                genotypes=req.genotypes,
+                gene_labels=req.geneLabels,
             )
             return JSONResponse(content=result)
 
         elif req.plotType == PlotType.UMAP:
+            # Build gene_label from geneLabels dict using the gene key
+            gene_label = None
+            if req.geneLabels and req.gene:
+                gene_label = req.geneLabels.get(req.gene)
             result = generate_umap(
                 adata=adata,
                 gene=req.gene,
-                cell_types=req.cellTypes,
-                genotypes=req.genotypes,
+                gene_label=gene_label,
             )
             return JSONResponse(content=result)
 

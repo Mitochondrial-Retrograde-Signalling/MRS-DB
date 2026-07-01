@@ -27,6 +27,11 @@ class PlotRequest(BaseModel):
     cellTypes: list[str] = Field(..., min_length=1, description="Cell type values")
     timepoint: Timepoint = Field(..., description="Timepoint: 1h, 3h, or 6h")
     gene: Optional[str] = Field(None, description="Single gene for UMAP (required when plotType='umap')")
+    geneLabels: Optional[dict[str, str]] = Field(
+        None,
+        description="Mapping from GeneName (key) → display label 'GeneID (GeneName)'. "
+                    "Keys must match values in `genes` / `gene`.",
+    )
 
     @field_validator("genes")
     @classmethod
