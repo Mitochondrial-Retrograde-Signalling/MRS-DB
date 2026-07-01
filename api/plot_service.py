@@ -184,26 +184,56 @@ def generate_umap(
     for i, group_name in enumerate(unique_groups):
         adata_sub = adata[adata.obs["group"] == group_name].copy()
 
-        # Pull expression values and mask low values (from test.ipynb Cell 9)
+        # Pull expression values (from test.ipynb Cell 9)
         expr_values = adata_sub.obs_vector(gene).astype(float)
-        expr_values[expr_values <= NA_CUTOFF] = np.nan
 
         umap_coords = adata_sub.obsm["X_umap"]
 
         row = i // ncols + 1
         col = i % ncols + 1
 
+        # Split into NA (low-expression) and valid points, matching
+        # test.ipynb behaviour where cmap.set_bad(color=na_color) renders
+        # NaN cells as lightgray.
+        na_mask = expr_values <= NA_CUTOFF
+        valid_mask = ~na_mask
+
+        # ── NA trace (solid lightgray, rendered behind valid points) ──
+        if na_mask.any():
+            na_trace = go.Scatter(
+                x=umap_coords[na_mask, 0],
+                y=umap_coords[na_mask, 1],
+                mode="markers",
+                marker=dict(
+                    size=3,
+                    color=NA_COLOR,
+                ),
+                name=f"{group_name} (NA)",
+                showlegend=False,
+                hovertemplate=(
+                    f"UMAP1: %{{x:.2f}}<br>"
+                    f"UMAP2: %{{y:.2f}}<br>"
+                    f"{display_name}: ≤ {NA_CUTOFF}<br>"
+                    f"Group: {group_name}<extra></extra>"
+                ),
+            )
+            fig.add_trace(na_trace, row=row, col=col)
+
+        # ── Valid-expression trace (Plasma_r colorscale) ──
+        valid_expr = expr_values[valid_mask]
+        has_valid = valid_mask.any()
+
         trace = go.Scatter(
-            x=umap_coords[:, 0],
-            y=umap_coords[:, 1],
+            x=umap_coords[valid_mask, 0],
+            y=umap_coords[valid_mask, 1],
             mode="markers",
             marker=dict(
                 size=3,
-                color=expr_values,
+                color=valid_expr if has_valid else None,
                 colorscale="Plasma_r",
                 colorbar=dict(title="Expression") if i == len(unique_groups) - 1 else None,
-                cmin=np.nanmin(expr_values) if not np.all(np.isnan(expr_values)) else 0,
-                cmax=np.nanmax(expr_values) if not np.all(np.isnan(expr_values)) else 1,
+                cmin=np.nanmin(valid_expr) if has_valid else 0,
+                cmax=np.nanmax(valid_expr) if has_valid else 1,
                 showscale=(i == len(unique_groups) - 1),
             ),
             name=group_name,
