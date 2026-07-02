@@ -69,7 +69,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=[
+        "http://localhost:3000",   # React dev server (npm start)
+        "http://localhost:80",     # Docker nginx (explicit port)
+        "http://localhost",        # Docker nginx (default port 80)
+        "http://127.0.0.1:3000",   # Alternative localhost
+        "http://127.0.0.1:80",
+        "http://127.0.0.1",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

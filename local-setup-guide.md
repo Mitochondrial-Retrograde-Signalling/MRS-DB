@@ -158,9 +158,102 @@ The React dev server starts on **http://localhost:3000**. It auto-proxies `/api/
 
 ---
 
-## 5. One-Command Quickstart
+## 5. Docker Setup (Single Port)
 
-Open two terminals:
+The multi-stage Docker build packages the React frontend, FastAPI backend, and nginx reverse proxy into a single container, all served on port 80.
+
+### 5.1 Prerequisites
+
+| Tool | Minimum Version | How to Check |
+|------|----------------|--------------|
+| **Docker** | 20.10+ | `docker --version` |
+
+Plus ≥16 GB RAM available on the host machine (the 3h `.h5ad` file is ~4.5 GB and is loaded into memory).
+
+### 5.2 Build the Image
+
+```bash
+cd /path/to/MRS-DB
+docker build -t mrs-db:latest .
+```
+
+> The build uses a multi-stage Dockerfile: a `node:20-alpine` stage compiles the React frontend, then a `python:3.10-slim` runtime stage bundles it with nginx, supervisord, and the FastAPI backend.
+
+### 5.3 Run the Container
+
+```bash
+docker run -d \
+  --name mrs-db \
+  -p 80:80 \
+  -v "$(pwd)/data:/app/data" \
+  mrs-db:latest
+```
+
+| Flag | Purpose |
+|------|---------|
+| `-d` | Run in detached mode (background) |
+| `--name mrs-db` | Name the container for easy reference |
+| `-p 80:80` | Map host port 80 to container port 80 |
+| `-v $(pwd)/data:/app/data` | Mount the local `data/` directory into the container so `.h5ad` files are accessible |
+
+### 5.4 Architecture
+
+```
+Browser :80 → nginx ─┬─ /              → React static build
+                      ├─ /api/*         → proxy_pass → uvicorn :8001 (FastAPI)
+                      └─ /data/processed/* → static JSON files
+```
+
+- **nginx** listens on port 80, serves the React build, and proxies `/api/*` requests to uvicorn internally on `127.0.0.1:8001`.
+- **supervisord** manages both nginx and uvicorn, auto-restarting either if they crash.
+- **`API_BASE`** in the React app is set to `''` (relative paths), so all API calls go to the same origin — no CORS issues.
+
+### 5.5 Verify
+
+```bash
+# Health check (API is alive)
+curl http://localhost/api/health
+# → {"status":"ok","loaded_timepoints":[]}
+
+# API docs (Swagger UI)
+# Open http://localhost/api/docs in browser
+
+# Frontend
+# Open http://localhost in browser
+
+# Static data files
+curl -s http://localhost/data/processed/3h.json | head -c 200
+```
+
+### 5.6 View Logs
+
+```bash
+docker logs -f mrs-db
+```
+
+You should see both `[program:nginx]` and `[program:uvicorn]` entering the `RUNNING` state. Uvicorn takes 5–10 seconds to start due to scanpy imports.
+
+### 5.7 Stop & Clean Up
+
+```bash
+docker stop mrs-db && docker rm mrs-db
+```
+
+### 5.8 Troubleshooting (Docker)
+
+| Problem | Solution |
+|---------|----------|
+| Container exits immediately | Check logs: `docker logs mrs-db`. Usually a missing config file or Python import error. |
+| `uvicorn` not starting | Verify `api/requirements.txt` is up to date. Ensure `supervisord.conf` exists at repo root. |
+| nginx returns 502 Bad Gateway | Uvicorn may still be starting (scanpy imports are slow). Wait 10–15s and retry. |
+| `data/` files not found | Confirm the volume mount: `docker exec mrs-db ls /app/data/` |
+| Out of memory | Ensure ≥16 GB RAM. Monitor: `docker stats mrs-db` |
+| Port 80 already in use | Change host port: `-p 8080:80`, then access at `http://localhost:8080` |
+| Build fails (npm) | Clear npm cache: `docker builder prune` then rebuild |
+
+---
+
+## 6. One-Command Quickstart (Dev, no Docker)
 
 **Terminal 1 — Backend:**
 ```bash
@@ -177,9 +270,11 @@ npm start
 
 ---
 
-## 6. Using the Application
+## 7. Using the Application
 
-1. Open **http://localhost:3000** in your browser
+1. Open the app in your browser:
+   - **Docker:** http://localhost
+   - **Dev mode:** http://localhost:3000
 2. In the left sidebar, make four selections:
 
    | Filter | Example |
@@ -202,7 +297,7 @@ npm start
 
 ---
 
-## 7. API Reference
+## 8. API Reference
 
 ### `GET /api/health`
 
@@ -254,7 +349,7 @@ Generates a dotplot (PNG) or UMAP feature plot (Plotly JSON).
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
@@ -269,7 +364,7 @@ Generates a dotplot (PNG) or UMAP feature plot (Plotly JSON).
 
 ---
 
-## 9. Production Build
+## 10. Production Build
 
 To create a static production build:
 
