@@ -104,24 +104,24 @@ Expected output includes `group` and `celltype` in `obs.columns`, and `X_umap` i
 ### 3.3 Start Backend
 
 ```bash
-uvicorn api.main:app --host 0.0.0.0 --port 8000
+uvicorn api.main:app --host 0.0.0.0 --port 8001
 ```
 
 Or with auto-reload for development:
 
 ```bash
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ### 3.4 Verify Backend
 
 ```bash
 # Health check
-curl http://localhost:8000/api/health
+curl http://localhost:8001/api/health
 # → {"status":"ok","loaded_timepoints":[]}
 
 # Test dotplot
-curl -s -X POST http://localhost:8000/api/plot \
+curl -s -X POST http://localhost:8001/api/plot \
   -H 'Content-Type: application/json' \
   -d '{
     "plotType":"dotplot",
@@ -154,7 +154,7 @@ npm install
 npm start
 ```
 
-The React dev server starts on **http://localhost:3000**. It auto-proxies plot API calls to the backend at `localhost:8000`.
+The React dev server starts on **http://localhost:3000**. It auto-proxies `/api/*` calls to the backend at `localhost:8001` (configured via `"proxy"` in `package.json`).
 
 ---
 
@@ -165,7 +165,7 @@ Open two terminals:
 **Terminal 1 — Backend:**
 ```bash
 cd /path/to/MRS-DB
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 **Terminal 2 — Frontend:**
@@ -265,7 +265,7 @@ Generates a dotplot (PNG) or UMAP feature plot (Plotly JSON).
 | `No observations remain after filtering` | Check that your selected genotypes/cell types exist in the data |
 | Backend won't start (Starlette/FastAPI conflict) | Ensure `fastapi>=0.115.0` is installed: `pip install "fastapi>=0.115.0"` |
 | Out of memory | The 3h h5ad needs ~6 GB RAM. Close other applications or add swap. |
-| CORS errors | Backend allows `localhost:3000`. If using a different frontend port, update `allow_origins` in `api/main.py` |
+| CORS errors | Not expected — the React dev proxy forwards `/api/*` same-origin. If the backend port changes, update `"proxy"` in `package.json`. |
 
 ---
 

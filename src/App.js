@@ -188,7 +188,7 @@ function App() {
     }
   };
   
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = '';
 
   // Check if all required selections are made
   const hasAllSelections = selectedGenes.length > 0 && selectedGenotype.length > 0 && selectedCellTypes.length > 0 && selectedGeneList;
