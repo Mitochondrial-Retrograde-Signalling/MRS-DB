@@ -838,7 +838,7 @@ function App() {
                       ←
                     </button>
                     <div style={{ flex: 1, position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                      <div style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                         Gene {umapGeneIndex + 1} of {selectedGenes.length}
                       </div>
                       <PlotDisplay
