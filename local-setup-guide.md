@@ -36,9 +36,9 @@ The backend loads `.h5ad` files from the `data/` directory. At minimum you need:
 
 ```
 data/
-  Ath_3h_slim.h5ad    # 3-hour timepoint (~4.5 GB)
-  Ath_1h_slim.h5ad    # 1-hour timepoint (optional)
-  Ath_6h_slim.h5ad    # 6-hour timepoint (optional)
+  Ath_3h.h5ad    # 3-hour timepoint (~4.5 GB)
+  Ath_1h.h5ad    # 1-hour timepoint (optional)
+  Ath_6h.h5ad    # 6-hour timepoint (optional)
 ```
 
 > **Memory note:** The 3h file is ~4.5 GB. Ensure ≥16 GB RAM is available.
@@ -92,7 +92,7 @@ pip install -r api/requirements.txt
 ```bash
 python -c "
 import scanpy as sc
-a = sc.read_h5ad('data/Ath_3h_slim.h5ad')
+a = sc.read_h5ad('data/Ath_3h.h5ad')
 print('obs columns:', list(a.obs.columns))
 print('obsm keys:', list(a.obsm.keys()))
 print('n_obs:', a.n_obs)
@@ -356,7 +356,7 @@ Generates a dotplot (PNG) or UMAP feature plot (Plotly JSON).
 | `npm: command not found` | Run `export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"` first |
 | `react-scripts: Permission denied` | Run `npm install` to reinstall dependencies |
 | `ModuleNotFoundError: No module named 'api'` | Run uvicorn from the repo root: `cd /path/to/MRS-DB` |
-| `Timepoint '1h' data file not found` | Place `Ath_1h_slim.h5ad` in `data/` or only use available timepoints |
+| `Timepoint '1h' data file not found` | Place `Ath_1h.h5ad` in `data/` or only use available timepoints |
 | `No observations remain after filtering` | Check that your selected genotypes/cell types exist in the data |
 | Backend won't start (Starlette/FastAPI conflict) | Ensure `fastapi>=0.115.0` is installed: `pip install "fastapi>=0.115.0"` |
 | Out of memory | The 3h h5ad needs ~6 GB RAM. Close other applications or add swap. |

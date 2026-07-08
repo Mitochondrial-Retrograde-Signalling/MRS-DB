@@ -21,7 +21,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import seaborn as sns
 from anndata import AnnData
-from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -125,14 +124,16 @@ def generate_dotplot(
     fig.tight_layout()
 
     # ── Render to base64 PNG ──
+    # dpi=96 matches typical screen resolution; frontend uses CSS max-width so
+    # exact pixel dimensions are irrelevant — PIL double-decode removed.
+    _DPI = 96
+    w_in, h_in = fig.get_size_inches()
+    width = int(round(w_in * _DPI))
+    height = int(round(h_in * _DPI))
+
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=_DPI, bbox_inches="tight")
     plt.close(fig)
-    buf.seek(0)
-
-    img = Image.open(buf)
-    width, height = img.size
-
     buf.seek(0)
     b64 = base64.b64encode(buf.read()).decode("utf-8")
 

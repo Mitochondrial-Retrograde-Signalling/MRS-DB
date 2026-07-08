@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Select from 'react-select';
 import { matchSorter } from 'match-sorter';
 import './App.css';
@@ -40,6 +40,7 @@ function App() {
 
   const [cellTypeSearch, setCellTypeSearch] = useState('');
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const plotDebounceRef = useRef(null);
 
   useEffect(() => {
     const files = ['1h.json', '3h.json', '6h.json'];
@@ -239,20 +240,19 @@ function App() {
     }
   }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList]);
 
-  // Fetch plot when tab is switched to a plot type OR when filters change while on a plot tab
+  // Fetch plot with 300 ms debounce — prevents burst requests during rapid filter changes.
+  // Stale plot stays visible (see PlotDisplay.js overlay) until the new result arrives.
   useEffect(() => {
-    if (activePlotTab === 'dotplot' && hasAllSelections) {
-      fetchPlot('dotplot');
-    } else if (activePlotTab === 'umap' && hasAllSelections) {
-      fetchPlot('umap');
-    }
+    if (activePlotTab !== 'dotplot' && activePlotTab !== 'umap') return;
+    if (!hasAllSelections) return;
+    if (plotDebounceRef.current) clearTimeout(plotDebounceRef.current);
+    plotDebounceRef.current = setTimeout(() => {
+      fetchPlot(activePlotTab);
+    }, 300);
+    return () => {
+      if (plotDebounceRef.current) clearTimeout(plotDebounceRef.current);
+    };
   }, [activePlotTab, hasAllSelections, fetchPlot]);
-
-  // Clear stale plot data when filter selections change
-  useEffect(() => {
-    setPlotData(null);
-    setPlotError(null);
-  }, [selectedGenes, selectedGenotype, selectedCellTypes]);
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
