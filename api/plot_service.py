@@ -219,11 +219,13 @@ def generate_umap(
         row, col = divmod(i, ncols)
         axes[row][col].set_visible(False)
 
-    if scatter_ref is not None:
-        fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, label="Expression")
-
     fig.suptitle(display_name, fontsize=11, fontweight="bold")
-    plt.tight_layout()
+    # Reserve 12% on the right for the colorbar before tight_layout runs,
+    # so subplots never overlap it.
+    plt.tight_layout(rect=[0, 0, 0.88, 1.0])
+    if scatter_ref is not None:
+        cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
+        fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression")
 
     _DPI = 96
     w_in, h_in = fig.get_size_inches()
