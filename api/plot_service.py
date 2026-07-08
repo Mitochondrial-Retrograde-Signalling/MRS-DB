@@ -182,7 +182,7 @@ def generate_umap(
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
     figw = ncols * 3.5
-    figh = nrows * 3.2
+    figh = nrows * 3.5
     fig, axes = plt.subplots(nrows, ncols, figsize=(figw, figh), squeeze=False)
 
     scatter_ref = None
