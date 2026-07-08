@@ -25,6 +25,7 @@ function App() {
   const [showCitation, setShowCitation] = useState(false);
   const [geneSearchInput, setGeneSearchInput] = useState('');
   const [activePlotTab, setActivePlotTab] = useState('table'); // 'table' | 'dotplot' | 'umap'
+  const [umapGeneIndex, setUmapGeneIndex] = useState(0);
   const [plotData, setPlotData] = useState(null);   // { plotType, image?, data? }
   const [plotLoading, setPlotLoading] = useState(false);
   const [plotError, setPlotError] = useState(null);
@@ -218,7 +219,7 @@ function App() {
         timepoint: selectedTimepoint,
       };
       if (plotType === 'umap' && geneNames.length > 0) {
-        body.gene = geneNames[0];
+        body.gene = geneNames[umapGeneIndex];
       }
       const res = await fetch(`${API_BASE}/api/plot`, {
         method: 'POST',
@@ -238,7 +239,7 @@ function App() {
     } finally {
       setPlotLoading(false);
     }
-  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList]);
+  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapGeneIndex]);
 
   // Fetch plot with 300 ms debounce — prevents burst requests during rapid filter changes.
   // Stale plot stays visible (see PlotDisplay.js overlay) until the new result arrives.
@@ -253,6 +254,12 @@ function App() {
       if (plotDebounceRef.current) clearTimeout(plotDebounceRef.current);
     };
   }, [activePlotTab, hasAllSelections, fetchPlot]);
+
+  // Reset carousel index when the gene selection changes so the carousel never
+  // points out-of-bounds after a gene is removed.
+  useEffect(() => {
+    setUmapGeneIndex(0);
+  }, [selectedGenes]);
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
@@ -753,11 +760,48 @@ function App() {
             )}
 
             {hasAllSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
-              <PlotDisplay
-                plotData={plotData}
-                loading={plotLoading}
-                error={plotError}
-              />
+              <>
+                {activePlotTab === 'umap' && selectedGenes.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '10px 16px', margin: '0 1.5rem 8px', background: '#f8fafc', border: '1px solid #dde', borderRadius: '10px' }}>
+                    <button
+                      onClick={() => setUmapGeneIndex(i => Math.max(0, i - 1))}
+                      disabled={umapGeneIndex === 0}
+                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '32px', height: '32px', cursor: umapGeneIndex === 0 ? 'default' : 'pointer', fontSize: '1rem', color: '#1a5276', opacity: umapGeneIndex === 0 ? 0.3 : 1, flexShrink: 0 }}
+                    >
+                      ←
+                    </button>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontWeight: 700, color: '#1a5276' }}>
+                        {geneDetailsByGeneList[selectedGeneList]?.[selectedGenes[umapGeneIndex]]?.label || selectedGenes[umapGeneIndex]}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#aaa', marginTop: '2px' }}>
+                        Gene {umapGeneIndex + 1} of {selectedGenes.length}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginTop: '4px' }}>
+                        {selectedGenes.map((_, i) => (
+                          <div
+                            key={i}
+                            onClick={() => setUmapGeneIndex(i)}
+                            style={{ width: '7px', height: '7px', borderRadius: '50%', background: i === umapGeneIndex ? '#1a5276' : '#ccd', cursor: 'pointer' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setUmapGeneIndex(i => Math.min(selectedGenes.length - 1, i + 1))}
+                      disabled={umapGeneIndex === selectedGenes.length - 1}
+                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '32px', height: '32px', cursor: umapGeneIndex === selectedGenes.length - 1 ? 'default' : 'pointer', fontSize: '1rem', color: '#1a5276', opacity: umapGeneIndex === selectedGenes.length - 1 ? 0.3 : 1, flexShrink: 0 }}
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+                <PlotDisplay
+                  plotData={plotData}
+                  loading={plotLoading}
+                  error={plotError}
+                />
+              </>
             )}
           </div>
 
