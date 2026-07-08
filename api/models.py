@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -52,5 +52,7 @@ class DotplotResponse(BaseModel):
 
 class UmapResponse(BaseModel):
     plotType: str = "umap"
-    data: dict[str, Any] = Field(..., description="Plotly figure JSON")
-    format: str = "plotly_json"
+    image: str = Field(..., description="Base64-encoded PNG image")
+    format: str = "png"
+    width: int
+    height: int

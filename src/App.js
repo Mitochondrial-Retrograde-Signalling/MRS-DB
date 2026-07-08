@@ -42,6 +42,10 @@ function App() {
   const [cellTypeSearch, setCellTypeSearch] = useState('');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const plotDebounceRef = useRef(null);
+  // Keyed by "${timepoint}:${geneName}" → plotData object
+  const umapCacheRef = useRef({});
+  // Tracks cache keys currently being background-fetched (to avoid duplicate requests)
+  const umapPrefetchingRef = useRef(new Set());
 
   useEffect(() => {
     const files = ['1h.json', '3h.json', '6h.json'];
@@ -197,19 +201,32 @@ function App() {
 
   const fetchPlot = useCallback(async (plotType) => {
     if (!hasAllSelections) return;
+
+    // Build GeneName list and geneLabels mapping from selected Gene IDs
+    const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
+    const geneLabels = {};
+    const geneNames = selectedGenes.map(geneId => {
+      const details = detailsMap[geneId];
+      const geneName = details?.name || geneId;  // Fallback to Gene ID if no GeneName
+      geneLabels[geneName] = details?.label || geneId;  // "GeneID (GeneName)" or just GeneID
+      return geneName;
+    });
+
+    // UMAP: check frontend cache first — instant render with no spinner
+    if (plotType === 'umap' && geneNames.length > 0) {
+      const currentGene = geneNames[umapGeneIndex];
+      const cacheKey = `${selectedTimepoint}:${currentGene}`;
+      if (umapCacheRef.current[cacheKey]) {
+        setPlotData(umapCacheRef.current[cacheKey]);
+        setPlotError(null);
+        setActivePlotTab('umap');
+        return;
+      }
+    }
+
     setPlotLoading(true);
     setPlotError(null);
     try {
-      // Build GeneName list and geneLabels mapping from selected Gene IDs
-      const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
-      const geneLabels = {};
-      const geneNames = selectedGenes.map(geneId => {
-        const details = detailsMap[geneId];
-        const geneName = details?.name || geneId;  // Fallback to Gene ID if no GeneName
-        geneLabels[geneName] = details?.label || geneId;  // "GeneID (GeneName)" or just GeneID
-        return geneName;
-      });
-
       const body = {
         plotType,
         genes: geneNames,
@@ -231,6 +248,10 @@ function App() {
         throw new Error(err.detail || `HTTP ${res.status}`);
       }
       const data = await res.json();
+      // Populate frontend UMAP cache so subsequent visits to this gene are instant
+      if (plotType === 'umap' && body.gene) {
+        umapCacheRef.current[`${selectedTimepoint}:${body.gene}`] = data;
+      }
       setPlotData(data);
       setActivePlotTab(plotType);
     } catch (err) {
@@ -255,9 +276,55 @@ function App() {
     };
   }, [activePlotTab, hasAllSelections, fetchPlot]);
 
-  // Reset carousel index when the gene selection changes so the carousel never
-  // points out-of-bounds after a gene is removed.
+  // Background prefetch: when UMAP tab is active, sequentially fetch all remaining
+  // genes so carousel navigation is instant once each gene has been loaded once.
+  // Runs in gene-list order; skips genes already cached or in-flight.
   useEffect(() => {
+    if (activePlotTab !== 'umap' || !hasAllSelections || selectedGenes.length <= 1) return;
+
+    let cancelled = false;
+
+    const runPrefetch = async () => {
+      const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
+      for (const geneId of selectedGenes) {
+        if (cancelled) break;
+        const details = detailsMap[geneId];
+        const geneName = details?.name || geneId;
+        const geneLabel = details?.label || geneId;
+        const cacheKey = `${selectedTimepoint}:${geneName}`;
+        if (umapCacheRef.current[cacheKey] || umapPrefetchingRef.current.has(cacheKey)) continue;
+
+        umapPrefetchingRef.current.add(cacheKey);
+        try {
+          const res = await fetch(`${API_BASE}/api/plot`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              plotType: 'umap',
+              genes: [geneName],
+              geneLabels: { [geneName]: geneLabel },
+              genotypes: [],
+              cellTypes: [],
+              timepoint: selectedTimepoint,
+              gene: geneName,
+            }),
+          });
+          if (res.ok && !cancelled) {
+            umapCacheRef.current[cacheKey] = await res.json();
+          }
+        } catch { /* silently ignore prefetch failures */ }
+        finally { umapPrefetchingRef.current.delete(cacheKey); }
+      }
+    };
+
+    runPrefetch();
+    return () => { cancelled = true; };
+  }, [activePlotTab, hasAllSelections, selectedGenes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList]);
+
+  // Reset carousel index and clear UMAP cache when gene selection changes.
+  useEffect(() => {
+    umapCacheRef.current = {};
+    umapPrefetchingRef.current.clear();
     setUmapGeneIndex(0);
   }, [selectedGenes]);
 
