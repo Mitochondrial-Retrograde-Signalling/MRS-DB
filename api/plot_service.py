@@ -110,7 +110,8 @@ def generate_dotplot(
     path_coll = g.axes[0].collections[0] if g.axes[0].collections else None
     if path_coll:
         cbar_ax = g.figure.add_axes([1.02, 0.3, 0.02, 0.4])
-        plt.colorbar(path_coll, cax=cbar_ax, label="Average\nexpression")
+        cbar = plt.colorbar(path_coll, cax=cbar_ax, label="Average\nexpression")
+        cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
     g.set_axis_labels("", "")
     g.set_titles(col_template="{col_name}")
@@ -225,7 +226,8 @@ def generate_umap(
     plt.tight_layout(rect=[0, 0, 0.88, 1.0])
     if scatter_ref is not None:
         cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
-        fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression")
+        cbar = fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression")
+        cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
     _DPI = 96
     w_in, h_in = fig.get_size_inches()

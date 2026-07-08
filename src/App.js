@@ -828,46 +828,40 @@ function App() {
 
             {hasAllSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
               <>
-                {activePlotTab === 'umap' && selectedGenes.length > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '10px 16px', margin: '0 1.5rem 8px', background: '#f8fafc', border: '1px solid #dde', borderRadius: '10px' }}>
+                {activePlotTab === 'umap' && selectedGenes.length > 1 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem' }}>
                     <button
                       onClick={() => setUmapGeneIndex(i => Math.max(0, i - 1))}
                       disabled={umapGeneIndex === 0}
-                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '32px', height: '32px', cursor: umapGeneIndex === 0 ? 'default' : 'pointer', fontSize: '1rem', color: '#1a5276', opacity: umapGeneIndex === 0 ? 0.3 : 1, flexShrink: 0 }}
+                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: umapGeneIndex === 0 ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: umapGeneIndex === 0 ? 0.3 : 1, flexShrink: 0 }}
                     >
                       ←
                     </button>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontWeight: 700, color: '#1a5276' }}>
-                        {geneDetailsByGeneList[selectedGeneList]?.[selectedGenes[umapGeneIndex]]?.label || selectedGenes[umapGeneIndex]}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#aaa', marginTop: '2px' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                         Gene {umapGeneIndex + 1} of {selectedGenes.length}
                       </div>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginTop: '4px' }}>
-                        {selectedGenes.map((_, i) => (
-                          <div
-                            key={i}
-                            onClick={() => setUmapGeneIndex(i)}
-                            style={{ width: '7px', height: '7px', borderRadius: '50%', background: i === umapGeneIndex ? '#1a5276' : '#ccd', cursor: 'pointer' }}
-                          />
-                        ))}
-                      </div>
+                      <PlotDisplay
+                        plotData={plotData}
+                        loading={plotLoading}
+                        error={plotError}
+                      />
                     </div>
                     <button
                       onClick={() => setUmapGeneIndex(i => Math.min(selectedGenes.length - 1, i + 1))}
                       disabled={umapGeneIndex === selectedGenes.length - 1}
-                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '32px', height: '32px', cursor: umapGeneIndex === selectedGenes.length - 1 ? 'default' : 'pointer', fontSize: '1rem', color: '#1a5276', opacity: umapGeneIndex === selectedGenes.length - 1 ? 0.3 : 1, flexShrink: 0 }}
+                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: umapGeneIndex === selectedGenes.length - 1 ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: umapGeneIndex === selectedGenes.length - 1 ? 0.3 : 1, flexShrink: 0 }}
                     >
                       →
                     </button>
                   </div>
+                ) : (
+                  <PlotDisplay
+                    plotData={plotData}
+                    loading={plotLoading}
+                    error={plotError}
+                  />
                 )}
-                <PlotDisplay
-                  plotData={plotData}
-                  loading={plotLoading}
-                  error={plotError}
-                />
               </>
             )}
           </div>
