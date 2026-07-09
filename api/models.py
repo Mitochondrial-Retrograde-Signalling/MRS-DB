@@ -23,8 +23,8 @@ class PlotRequest(BaseModel):
 
     plotType: PlotType = Field(..., description="Type of plot to generate")
     genes: list[str] = Field(..., min_length=1, max_length=10, description="Gene symbols (max 10)")
-    genotypes: list[str] = Field(..., min_length=1, description="Genotype/group values")
-    cellTypes: list[str] = Field(..., min_length=1, description="Cell type values")
+    genotypes: list[str] = Field(default=[], description="Genotype/group values (unused for UMAP)")
+    cellTypes: list[str] = Field(default=[], description="Cell type values (unused for UMAP)")
     timepoint: Timepoint = Field(..., description="Timepoint: 1h, 3h, or 6h")
     gene: Optional[str] = Field(None, description="Single gene for UMAP (required when plotType='umap')")
     geneLabels: Optional[dict[str, str]] = Field(
