@@ -226,7 +226,7 @@ def generate_umap(
     plt.tight_layout(rect=[0, 0, 0.88, 1.0])
     if scatter_ref is not None:
         cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
-        cbar = fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression")
+        cbar = fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression level")
         cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
     _DPI = 96
