@@ -27,6 +27,8 @@ function App() {
   const [activePlotTab, setActivePlotTab] = useState('table'); // 'table' | 'dotplot' | 'umap'
   const [activeMode, setActiveMode] = useState('heatmap'); // 'heatmap' | 'spatial'
   const [umapGeneIndex, setUmapGeneIndex] = useState(0);
+  const [umapCarouselMode, setUmapCarouselMode] = useState('gene'); // 'gene' | 'timepoint'
+  const [umapTimepointIndex, setUmapTimepointIndex] = useState(0);
   const [umapHighlightBy, setUmapHighlightBy] = useState('celltype'); // 'celltype' | 'cluster'
   const [umapHighlightValues, setUmapHighlightValues] = useState([]); // selected category values
   const [umapCategories, setUmapCategories] = useState({ celltypes: [], clusters: [] }); // from /api/umap-categories
@@ -37,6 +39,7 @@ function App() {
 
   const [data, setData] = useState({});
   const [timepoints, setTimepoints] = useState([]);
+  const allTimepoints = timepoints.map(tp => `${tp}h`); // e.g. ['1h', '3h', '6h']
 
 
   const [geneDetailsByGeneList, setGeneDetailsByGeneList] = useState({});
@@ -284,58 +287,107 @@ function App() {
     };
   }, [activePlotTab, hasSpatialSelections, fetchPlot]);
 
-  // Background prefetch: when UMAP tab is active, sequentially fetch all remaining
-  // genes so carousel navigation is instant once each gene has been loaded once.
-  // Runs in gene-list order; skips genes already cached or in-flight.
+  // Background prefetch: when UMAP tab is active, sequentially fetch remaining plots
+  // so carousel navigation is instant.
+  // Gene mode:      prefetch all genes at the current timepoint (existing behaviour).
+  // Timepoint mode: prefetch all timepoints for the currently-displayed gene.
   useEffect(() => {
-    if (activePlotTab !== 'umap' || !hasSpatialSelections || selectedGenes.length <= 1) return;
+    if (activePlotTab !== 'umap' || !hasSpatialSelections) return;
+
+    // Gene mode: no point prefetching if there is only one gene
+    if (umapCarouselMode === 'gene' && selectedGenes.length <= 1) return;
+    // Timepoint mode: no point prefetching if there is only one timepoint
+    if (umapCarouselMode === 'timepoint' && allTimepoints.length <= 1) return;
 
     let cancelled = false;
 
     const runPrefetch = async () => {
       const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
-      for (const geneId of selectedGenes) {
-        if (cancelled) break;
-        const details = detailsMap[geneId];
-        const geneName = details?.name || geneId;
-        const geneLabel = details?.label || geneId;
-        const cacheKey = `${selectedTimepoint}:${geneName}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`;
-        if (umapCacheRef.current[cacheKey] || umapPrefetchingRef.current.has(cacheKey)) continue;
+      const tpList = timepoints.map(tp => `${tp}h`);
 
-        umapPrefetchingRef.current.add(cacheKey);
-        try {
-          const res = await fetch(`${API_BASE}/api/plot`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              plotType: 'umap',
-              genes: [geneName],
-              geneLabels: { [geneName]: geneLabel },
-              genotypes: [],
-              cellTypes: [],
-              timepoint: selectedTimepoint,
-              gene: geneName,
-              umapHighlightBy: umapHighlightBy,
-              umapHighlightValues: umapHighlightValues,
-            }),
-          });
-          if (res.ok && !cancelled) {
-            umapCacheRef.current[cacheKey] = await res.json();
-          }
-        } catch { /* silently ignore prefetch failures */ }
-        finally { umapPrefetchingRef.current.delete(cacheKey); }
+      if (umapCarouselMode === 'gene') {
+        // ── Gene mode: iterate over all selected genes ──────────────────────
+        for (const geneId of selectedGenes) {
+          if (cancelled) break;
+          const details = detailsMap[geneId];
+          const geneName = details?.name || geneId;
+          const geneLabel = details?.label || geneId;
+          const cacheKey = `${selectedTimepoint}:${geneName}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`;
+          if (umapCacheRef.current[cacheKey] || umapPrefetchingRef.current.has(cacheKey)) continue;
+
+          umapPrefetchingRef.current.add(cacheKey);
+          try {
+            const res = await fetch(`${API_BASE}/api/plot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                plotType: 'umap',
+                genes: [geneName],
+                geneLabels: { [geneName]: geneLabel },
+                genotypes: [],
+                cellTypes: [],
+                timepoint: selectedTimepoint,
+                gene: geneName,
+                umapHighlightBy: umapHighlightBy,
+                umapHighlightValues: umapHighlightValues,
+              }),
+            });
+            if (res.ok && !cancelled) {
+              umapCacheRef.current[cacheKey] = await res.json();
+            }
+          } catch { /* silently ignore prefetch failures */ }
+          finally { umapPrefetchingRef.current.delete(cacheKey); }
+        }
+      } else {
+        // ── Timepoint mode: iterate over all timepoints for the current gene ─
+        const currentGeneId = selectedGenes[umapGeneIndex] ?? selectedGenes[0];
+        if (!currentGeneId) return;
+        const details = detailsMap[currentGeneId];
+        const geneName = details?.name || currentGeneId;
+        const geneLabel = details?.label || currentGeneId;
+
+        for (const tp of tpList) {
+          if (cancelled) break;
+          const cacheKey = `${tp}:${geneName}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`;
+          if (umapCacheRef.current[cacheKey] || umapPrefetchingRef.current.has(cacheKey)) continue;
+
+          umapPrefetchingRef.current.add(cacheKey);
+          try {
+            const res = await fetch(`${API_BASE}/api/plot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                plotType: 'umap',
+                genes: [geneName],
+                geneLabels: { [geneName]: geneLabel },
+                genotypes: [],
+                cellTypes: [],
+                timepoint: tp,
+                gene: geneName,
+                umapHighlightBy: umapHighlightBy,
+                umapHighlightValues: umapHighlightValues,
+              }),
+            });
+            if (res.ok && !cancelled) {
+              umapCacheRef.current[cacheKey] = await res.json();
+            }
+          } catch { /* silently ignore prefetch failures */ }
+          finally { umapPrefetchingRef.current.delete(cacheKey); }
+        }
       }
     };
 
     runPrefetch();
     return () => { cancelled = true; };
-  }, [activePlotTab, hasSpatialSelections, selectedGenes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapHighlightBy, umapHighlightValues]);
+  }, [activePlotTab, hasSpatialSelections, umapCarouselMode, selectedGenes, umapGeneIndex, timepoints, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapHighlightBy, umapHighlightValues]);
 
-  // Reset carousel index and clear UMAP cache when gene selection changes.
+  // Reset carousel index, mode, and clear UMAP cache when gene selection changes.
   useEffect(() => {
     umapCacheRef.current = {};
     umapPrefetchingRef.current.clear();
     setUmapGeneIndex(0);
+    setUmapCarouselMode('gene');
+    setUmapTimepointIndex(0);
   }, [selectedGenes]);
 
   // Clear UMAP cache when highlight settings change so stale renders are not served.
@@ -837,7 +889,7 @@ function App() {
               </div>
             )}
 
-            {timepoints.length > 0 && (
+            {timepoints.length > 0 && activePlotTab !== 'umap' && (
               <div className="tab-bar">
                 {timepoints.map(tp => {
                   const label = `${tp}h`;
@@ -918,6 +970,65 @@ function App() {
               <>
                 {activePlotTab === 'umap' && (
                   <div className="umap-color-mode">
+                    {/* ── Carousel mode toggle ─────────────────────────────── */}
+                    <span style={{ marginRight: '2px', fontWeight: 500, color: '#555', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Browse by:</span>
+                    {[
+                      { value: 'gene',      label: 'Genes'      },
+                      { value: 'timepoint', label: 'Timepoints' },
+                    ].map(({ value, label }) => (
+                      <button
+                        key={value}
+                        className={`umap-color-mode-btn${umapCarouselMode === value ? ' active' : ''}`}
+                        onClick={() => {
+                          if (value === 'timepoint') {
+                            const idx = allTimepoints.indexOf(selectedTimepoint);
+                            setUmapTimepointIndex(idx >= 0 ? idx : 0);
+                          }
+                          setUmapCarouselMode(value);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    {/* ── Contextual dropdown ─────────────────────────────── */}
+                    {umapCarouselMode === 'gene' && (
+                      <Select
+                        value={{ value: selectedTimepoint, label: selectedTimepoint }}
+                        options={allTimepoints.map(tp => ({ value: tp, label: tp }))}
+                        onChange={(opt) => { if (opt) setSelectedTimepoint(opt.value); }}
+                        isSearchable={false}
+                        styles={{
+                          container: base => ({ ...base, minWidth: '80px', maxWidth: '110px' }),
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                        }}
+                      />
+                    )}
+                    {umapCarouselMode === 'timepoint' && (() => {
+                      const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
+                      const geneOpts = selectedGenes.map(gid => {
+                        const d = detailsMap[gid];
+                        return { value: gid, label: d?.name || gid };
+                      });
+                      const currentGid = selectedGenes[umapGeneIndex] ?? selectedGenes[0];
+                      const currentLabel = (detailsMap[currentGid]?.name || currentGid);
+                      return (
+                        <Select
+                          value={{ value: currentGid, label: currentLabel }}
+                          options={geneOpts}
+                          onChange={(opt) => {
+                            if (!opt) return;
+                            const idx = selectedGenes.indexOf(opt.value);
+                            if (idx >= 0) setUmapGeneIndex(idx);
+                          }}
+                          isSearchable
+                          styles={{
+                            container: base => ({ ...base, minWidth: '140px', maxWidth: '240px' }),
+                            menu: base => ({ ...base, zIndex: 9999 }),
+                          }}
+                        />
+                      );
+                    })()}
+                    <span style={{ margin: '0 8px', color: '#ccc' }}>|</span>
                     <span>Highlight by:</span>
                     {[
                       { value: 'celltype', label: 'Cell Type' },
@@ -954,40 +1065,87 @@ function App() {
                     />
                   </div>
                 )}
-                {activePlotTab === 'umap' && selectedGenes.length > 1 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem' }}>
-                    <button
-                      onClick={() => setUmapGeneIndex(i => Math.max(0, i - 1))}
-                      disabled={umapGeneIndex === 0}
-                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: umapGeneIndex === 0 ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: umapGeneIndex === 0 ? 0.3 : 1, flexShrink: 0 }}
-                    >
-                      ←
-                    </button>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                      <div style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                        Gene {umapGeneIndex + 1} of {selectedGenes.length}
-                      </div>
+                {(() => {
+                  // Determine whether to show the carousel wrapper.
+                  const showGeneCarousel = umapCarouselMode === 'gene' && selectedGenes.length > 1;
+                  const showTimepointCarousel = umapCarouselMode === 'timepoint' && allTimepoints.length > 1;
+                  const showCarousel = showGeneCarousel || showTimepointCarousel;
+
+                  // Carousel navigation values for gene mode
+                  const geneNavIndex = umapGeneIndex;
+                  const geneNavMax = selectedGenes.length - 1;
+
+                  // Carousel navigation values for timepoint mode
+                  const tpNavIndex = umapTimepointIndex;
+                  const tpNavMax = allTimepoints.length - 1;
+
+                  if (!showCarousel) {
+                    return (
                       <PlotDisplay
                         plotData={plotData}
                         loading={plotLoading}
                         error={plotError}
                       />
+                    );
+                  }
+
+                  // ── Shared carousel shell ───────────────────────────────────
+                  const prevDisabled = umapCarouselMode === 'gene' ? geneNavIndex === 0 : tpNavIndex === 0;
+                  const nextDisabled = umapCarouselMode === 'gene' ? geneNavIndex === geneNavMax : tpNavIndex === tpNavMax;
+
+                  const handlePrev = () => {
+                    if (umapCarouselMode === 'gene') {
+                      setUmapGeneIndex(i => Math.max(0, i - 1));
+                    } else {
+                      const newIdx = Math.max(0, tpNavIndex - 1);
+                      setUmapTimepointIndex(newIdx);
+                      setSelectedTimepoint(allTimepoints[newIdx]);
+                    }
+                  };
+
+                  const handleNext = () => {
+                    if (umapCarouselMode === 'gene') {
+                      setUmapGeneIndex(i => Math.min(geneNavMax, i + 1));
+                    } else {
+                      const newIdx = Math.min(tpNavMax, tpNavIndex + 1);
+                      setUmapTimepointIndex(newIdx);
+                      setSelectedTimepoint(allTimepoints[newIdx]);
+                    }
+                  };
+
+                  const badgeLabel = umapCarouselMode === 'gene'
+                    ? `Gene ${geneNavIndex + 1} of ${selectedGenes.length}`
+                    : allTimepoints[tpNavIndex];
+
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem' }}>
+                      <button
+                        onClick={handlePrev}
+                        disabled={prevDisabled}
+                        style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: prevDisabled ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: prevDisabled ? 0.3 : 1, flexShrink: 0 }}
+                      >
+                        ←
+                      </button>
+                      <div style={{ flex: 1, position: 'relative' }}>
+                        <div style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                          {badgeLabel}
+                        </div>
+                        <PlotDisplay
+                          plotData={plotData}
+                          loading={plotLoading}
+                          error={plotError}
+                        />
+                      </div>
+                      <button
+                        onClick={handleNext}
+                        disabled={nextDisabled}
+                        style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: nextDisabled ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: nextDisabled ? 0.3 : 1, flexShrink: 0 }}
+                      >
+                        →
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setUmapGeneIndex(i => Math.min(selectedGenes.length - 1, i + 1))}
-                      disabled={umapGeneIndex === selectedGenes.length - 1}
-                      style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: umapGeneIndex === selectedGenes.length - 1 ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: umapGeneIndex === selectedGenes.length - 1 ? 0.3 : 1, flexShrink: 0 }}
-                    >
-                      →
-                    </button>
-                  </div>
-                ) : (
-                  <PlotDisplay
-                    plotData={plotData}
-                    loading={plotLoading}
-                    error={plotError}
-                  />
-                )}
+                  );
+                })()}
               </>
             )}
           </div>
