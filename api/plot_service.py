@@ -149,13 +149,20 @@ def generate_umap(
     adata: AnnData,
     gene: str,
     gene_label: Optional[str] = None,
+    highlight_by: Optional[str] = None,
+    highlight_values: Optional[list[str]] = None,
 ) -> dict:
-    """Generate a UMAP feature plot as a base64-encoded PNG.
+    """Generate a UMAP feature plot colored by expression, with optional cell highlighting.
 
     Args:
         adata: AnnData object (already subset by timepoint).
-        gene: Single GeneName matching adata.var_names to color by.
-        gene_label: Optional display label for the gene.
+        gene: Single GeneName matching adata.var_names.
+        gene_label: Optional display label shown as the plot title.
+        highlight_by: Optional category to highlight; one of "celltype" or "cluster".
+            Non-highlighted cells are drawn in NA_COLOR at alpha=0.12.
+            None or "none" means no highlighting (all cells at full opacity).
+        highlight_values: List of category values to highlight within ``highlight_by``.
+            Empty list or None disables highlighting even when ``highlight_by`` is set.
 
     Returns:
         Dict with keys: image (base64 str), format ("png"), width, height.
@@ -163,9 +170,18 @@ def generate_umap(
     if gene not in adata.var_names:
         raise ValueError(f"Gene '{gene}' not found in dataset")
 
+    _do_highlight = (
+        highlight_by in ("celltype", "cluster")
+        and bool(highlight_values)
+    )
+
+    if _do_highlight:
+        obs_key = "celltype" if highlight_by == "celltype" else "seurat_clusters"
+        if obs_key not in adata.obs.columns:
+            raise ValueError(f"Column '{obs_key}' not found in adata.obs")
+
     display_name = gene_label if gene_label else gene
 
-    all_expr = adata.obs_vector(gene).astype(float)
     all_umap = adata.obsm["X_umap"]
     all_groups = adata.obs["group"].values
 
@@ -174,7 +190,14 @@ def generate_umap(
     ncols = min(n_groups, 4)
     nrows = int(np.ceil(n_groups / ncols))
 
-    # Global color range across all groups for a consistent colorbar
+    figw = ncols * 3.5
+    figh = nrows * 3.5
+    fig, axes = plt.subplots(nrows, ncols, figsize=(figw, figh), squeeze=False)
+
+    # ── Always: expression color mode ────────────────────────────────────────
+    all_expr = adata.obs_vector(gene).astype(float)
+
+    # Global vmin/vmax across all groups for a consistent colorbar
     valid_expr_all = all_expr[all_expr > NA_CUTOFF]
     vmin = float(np.nanmin(valid_expr_all)) if valid_expr_all.size > 0 else 0.0
     vmax = float(np.nanmax(valid_expr_all)) if valid_expr_all.size > 0 else 1.0
@@ -182,9 +205,15 @@ def generate_umap(
     cmap = plt.cm.plasma_r
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
-    figw = ncols * 3.5
-    figh = nrows * 3.5
-    fig, axes = plt.subplots(nrows, ncols, figsize=(figw, figh), squeeze=False)
+    # Build global boolean mask for highlighted cells (True = highlighted)
+    if _do_highlight:
+        obs_series = adata.obs[obs_key].astype(str)
+        global_highlight_mask = obs_series.isin([str(v) for v in highlight_values]).values
+    else:
+        global_highlight_mask = None
+
+    _DIMMED_ALPHA = 0.12
+    _DIMMED_COLOR = NA_COLOR  # "lightgray"
 
     scatter_ref = None
     for i, group_name in enumerate(unique_groups):
@@ -198,17 +227,47 @@ def generate_umap(
         na_mask = expr <= NA_CUTOFF
         valid_mask = ~na_mask
 
-        if na_mask.any():
-            ax.scatter(
-                coords[na_mask, 0], coords[na_mask, 1],
-                s=2, c=NA_COLOR, linewidths=0, rasterized=True,
-            )
-        if valid_mask.any():
-            scatter_ref = ax.scatter(
-                coords[valid_mask, 0], coords[valid_mask, 1],
-                s=2, c=expr[valid_mask], cmap=cmap, norm=norm,
-                linewidths=0, rasterized=True,
-            )
+        if global_highlight_mask is not None:
+            # Per-group highlight mask (True = this cell is highlighted)
+            group_indices = np.where(group_mask)[0]
+            in_hi = global_highlight_mask[group_indices]
+            not_hi = ~in_hi
+
+            # 1. Dimmed non-highlighted cells (gray, very low alpha)
+            if not_hi.any():
+                ax.scatter(
+                    coords[not_hi, 0], coords[not_hi, 1],
+                    s=2, c=_DIMMED_COLOR, alpha=_DIMMED_ALPHA,
+                    linewidths=0, rasterized=True,
+                )
+
+            # 2. Highlighted cells: NA as gray, expressed with expression colormap
+            hi_na = na_mask & in_hi
+            hi_valid = valid_mask & in_hi
+            if hi_na.any():
+                ax.scatter(
+                    coords[hi_na, 0], coords[hi_na, 1],
+                    s=2, c=NA_COLOR, linewidths=0, rasterized=True,
+                )
+            if hi_valid.any():
+                scatter_ref = ax.scatter(
+                    coords[hi_valid, 0], coords[hi_valid, 1],
+                    s=2, c=expr[hi_valid], cmap=cmap, norm=norm,
+                    linewidths=0, rasterized=True,
+                )
+        else:
+            # No highlighting — standard expression rendering
+            if na_mask.any():
+                ax.scatter(
+                    coords[na_mask, 0], coords[na_mask, 1],
+                    s=2, c=NA_COLOR, linewidths=0, rasterized=True,
+                )
+            if valid_mask.any():
+                scatter_ref = ax.scatter(
+                    coords[valid_mask, 0], coords[valid_mask, 1],
+                    s=2, c=expr[valid_mask], cmap=cmap, norm=norm,
+                    linewidths=0, rasterized=True,
+                )
 
         ax.set_title(group_name, fontsize=9)
         ax.set_xlabel("UMAP1", fontsize=7)
@@ -220,9 +279,15 @@ def generate_umap(
         row, col = divmod(i, ncols)
         axes[row][col].set_visible(False)
 
-    fig.suptitle(display_name, fontsize=11, fontweight="bold")
-    # Reserve 12% on the right for the colorbar before tight_layout runs,
-    # so subplots never overlap it.
+    # Title: gene name, optionally appended with highlight annotation
+    title = display_name
+    if _do_highlight and highlight_values:
+        joined = ", ".join(str(v) for v in highlight_values[:3])
+        suffix = f" + {len(highlight_values) - 3} more" if len(highlight_values) > 3 else ""
+        title = f"{display_name}  [highlight: {joined}{suffix}]"
+    fig.suptitle(title, fontsize=11, fontweight="bold")
+
+    # Colorbar — reserve 12% on the right so subplots never overlap it
     plt.tight_layout(rect=[0, 0, 0.88, 1.0])
     if scatter_ref is not None:
         cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
@@ -247,3 +312,37 @@ def generate_umap(
         "width": width,
         "height": height,
     }
+
+
+# ── UMAP Category Metadata ───────────────────────────────────────────────────
+
+
+def get_umap_categories(adata: AnnData) -> dict:
+    """Return sorted lists of available celltype and cluster values from an AnnData object.
+
+    Args:
+        adata: AnnData object for a single timepoint.
+
+    Returns:
+        Dict with keys:
+            celltypes: sorted list of strings from adata.obs["celltype"] ([] if column absent).
+            clusters:  numerically sorted list of strings from adata.obs["seurat_clusters"]
+                       ([] if column absent).
+    """
+    celltypes: list[str] = []
+    if "celltype" in adata.obs.columns:
+        obs_series = adata.obs["celltype"]
+        if hasattr(obs_series, "cat"):
+            celltypes = [str(c) for c in obs_series.cat.categories.tolist()]
+        else:
+            celltypes = sorted([str(c) for c in obs_series.unique().tolist()], key=str)
+
+    clusters: list[str] = []
+    if "seurat_clusters" in adata.obs.columns:
+        raw_cats = adata.obs["seurat_clusters"].unique().tolist()
+        try:
+            clusters = [str(c) for c in sorted(raw_cats, key=int)]
+        except (ValueError, TypeError):
+            clusters = sorted([str(c) for c in raw_cats])
+
+    return {"celltypes": celltypes, "clusters": clusters}

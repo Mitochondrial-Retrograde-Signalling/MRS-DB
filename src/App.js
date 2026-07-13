@@ -26,6 +26,9 @@ function App() {
   const [geneSearchInput, setGeneSearchInput] = useState('');
   const [activePlotTab, setActivePlotTab] = useState('table'); // 'table' | 'dotplot' | 'umap'
   const [umapGeneIndex, setUmapGeneIndex] = useState(0);
+  const [umapHighlightBy, setUmapHighlightBy] = useState('none'); // 'none' | 'celltype' | 'cluster'
+  const [umapHighlightValues, setUmapHighlightValues] = useState([]); // selected category values
+  const [umapCategories, setUmapCategories] = useState({ celltypes: [], clusters: [] }); // from /api/umap-categories
   const [plotData, setPlotData] = useState(null);   // { plotType, image?, data? }
   const [plotLoading, setPlotLoading] = useState(false);
   const [plotError, setPlotError] = useState(null);
@@ -215,7 +218,7 @@ function App() {
     // UMAP: check frontend cache first — instant render with no spinner
     if (plotType === 'umap' && geneNames.length > 0) {
       const currentGene = geneNames[umapGeneIndex];
-      const cacheKey = `${selectedTimepoint}:${currentGene}`;
+      const cacheKey = `${selectedTimepoint}:${currentGene}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`;
       if (umapCacheRef.current[cacheKey]) {
         setPlotData(umapCacheRef.current[cacheKey]);
         setPlotError(null);
@@ -237,6 +240,8 @@ function App() {
       };
       if (plotType === 'umap' && geneNames.length > 0) {
         body.gene = geneNames[umapGeneIndex];
+        body.umapHighlightBy = umapHighlightBy;
+        body.umapHighlightValues = umapHighlightValues;
       }
       const res = await fetch(`${API_BASE}/api/plot`, {
         method: 'POST',
@@ -250,7 +255,7 @@ function App() {
       const data = await res.json();
       // Populate frontend UMAP cache so subsequent visits to this gene are instant
       if (plotType === 'umap' && body.gene) {
-        umapCacheRef.current[`${selectedTimepoint}:${body.gene}`] = data;
+        umapCacheRef.current[`${selectedTimepoint}:${body.gene}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`] = data;
       }
       setPlotData(data);
       setActivePlotTab(plotType);
@@ -260,7 +265,7 @@ function App() {
     } finally {
       setPlotLoading(false);
     }
-  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapGeneIndex]);
+  }, [hasAllSelections, selectedGenes, selectedGenotype, selectedCellTypes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapGeneIndex, umapHighlightBy, umapHighlightValues]);
 
   // Fetch plot with 300 ms debounce — prevents burst requests during rapid filter changes.
   // Stale plot stays visible (see PlotDisplay.js overlay) until the new result arrives.
@@ -291,7 +296,7 @@ function App() {
         const details = detailsMap[geneId];
         const geneName = details?.name || geneId;
         const geneLabel = details?.label || geneId;
-        const cacheKey = `${selectedTimepoint}:${geneName}`;
+        const cacheKey = `${selectedTimepoint}:${geneName}:${umapHighlightBy}:${[...umapHighlightValues].sort().join(',')}`;
         if (umapCacheRef.current[cacheKey] || umapPrefetchingRef.current.has(cacheKey)) continue;
 
         umapPrefetchingRef.current.add(cacheKey);
@@ -307,6 +312,8 @@ function App() {
               cellTypes: [],
               timepoint: selectedTimepoint,
               gene: geneName,
+              umapHighlightBy: umapHighlightBy,
+              umapHighlightValues: umapHighlightValues,
             }),
           });
           if (res.ok && !cancelled) {
@@ -319,7 +326,7 @@ function App() {
 
     runPrefetch();
     return () => { cancelled = true; };
-  }, [activePlotTab, hasAllSelections, selectedGenes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList]);
+  }, [activePlotTab, hasAllSelections, selectedGenes, selectedTimepoint, selectedGeneList, geneDetailsByGeneList, umapHighlightBy, umapHighlightValues]);
 
   // Reset carousel index and clear UMAP cache when gene selection changes.
   useEffect(() => {
@@ -327,6 +334,22 @@ function App() {
     umapPrefetchingRef.current.clear();
     setUmapGeneIndex(0);
   }, [selectedGenes]);
+
+  // Clear UMAP cache when highlight settings change so stale renders are not served.
+  useEffect(() => {
+    umapCacheRef.current = {};
+    umapPrefetchingRef.current.clear();
+  }, [umapHighlightBy, umapHighlightValues]);
+
+  // Fetch available celltypes and clusters from the spatial h5ad when UMAP tab
+  // is activated or the timepoint changes. Populates the Highlight-by multi-select.
+  useEffect(() => {
+    if (activePlotTab !== 'umap') return;
+    fetch(`${API_BASE}/api/umap-categories?timepoint=${selectedTimepoint}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setUmapCategories(data); })
+      .catch(() => { /* silently ignore — multi-select will be empty */ });
+  }, [activePlotTab, selectedTimepoint]);
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
@@ -828,6 +851,47 @@ function App() {
 
             {hasAllSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
               <>
+                {activePlotTab === 'umap' && (
+                  <div className="umap-color-mode">
+                    <span>Highlight by:</span>
+                    {[
+                      { value: 'none',     label: 'None'      },
+                      { value: 'celltype', label: 'Cell Type' },
+                      { value: 'cluster',  label: 'Cluster'   },
+                    ].map(({ value, label }) => (
+                      <button
+                        key={value}
+                        className={`umap-color-mode-btn${umapHighlightBy === value ? ' active' : ''}`}
+                        onClick={() => {
+                          setUmapHighlightBy(value);
+                          setUmapHighlightValues([]);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    {umapHighlightBy !== 'none' && (
+                      <Select
+                        isMulti
+                        closeMenuOnSelect={false}
+                        options={
+                          (umapHighlightBy === 'celltype'
+                            ? umapCategories.celltypes
+                            : umapCategories.clusters
+                          ).map(v => ({ value: v, label: String(v) }))
+                        }
+                        value={umapHighlightValues.map(v => ({ value: v, label: String(v) }))}
+                        onChange={(opts) => setUmapHighlightValues((opts || []).map(o => o.value))}
+                        placeholder={umapHighlightBy === 'celltype' ? 'Select cell types…' : 'Select clusters…'}
+                        isSearchable
+                        styles={{
+                          container: base => ({ ...base, minWidth: '180px', maxWidth: '320px' }),
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
                 {activePlotTab === 'umap' && selectedGenes.length > 1 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem' }}>
                     <button

@@ -15,8 +15,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.models import DotplotResponse, PlotRequest, PlotType, UmapResponse
-from api.plot_service import generate_dotplot, generate_umap
+from api.models import (
+    DotplotResponse,
+    PlotRequest,
+    PlotType,
+    UmapCategoriesResponse,
+    UmapHighlightBy,
+    UmapResponse,
+)
+from api.plot_service import generate_dotplot, generate_umap, get_umap_categories
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,7 +64,14 @@ def _make_cache_key(req: PlotRequest) -> str:
             if req.geneLabels and req.gene
             else None
         )
-        raw = ("umap", req.timepoint.value, req.gene, label_val)
+        raw = (
+            "umap",
+            req.timepoint.value,
+            req.gene,
+            label_val,
+            req.umapHighlightBy.value,
+            tuple(sorted(req.umapHighlightValues)),
+        )
     return hashlib.sha256(repr(raw).encode()).hexdigest()
 
 
@@ -195,6 +209,12 @@ async def plot_endpoint(req: PlotRequest):
                 adata=adata,
                 gene=req.gene,
                 gene_label=gene_label,
+                highlight_by=(
+                    req.umapHighlightBy.value
+                    if req.umapHighlightBy != UmapHighlightBy.NONE
+                    else None
+                ),
+                highlight_values=req.umapHighlightValues if req.umapHighlightValues else None,
             )
 
         else:
@@ -212,6 +232,25 @@ async def plot_endpoint(req: PlotRequest):
     _plot_result_cache[cache_key] = result
 
     return JSONResponse(content=result)
+
+
+@app.get("/api/umap-categories", response_model=UmapCategoriesResponse)
+async def umap_categories_endpoint(timepoint: str):
+    """Return available celltype and cluster values for the Highlight-by UI.
+
+    Query params:
+        timepoint: one of "1h", "3h", "6h"
+
+    Returns:
+        {"celltypes": [...], "clusters": [...]}
+    """
+    if timepoint not in TIMEPOINT_FILE_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid timepoint '{timepoint}'. Must be one of: {list(TIMEPOINT_FILE_MAP.keys())}",
+        )
+    adata = _get_adata(timepoint)
+    return get_umap_categories(adata)
 
 
 @app.get("/api/health")

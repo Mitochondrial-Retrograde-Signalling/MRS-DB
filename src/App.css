@@ -283,6 +283,43 @@ button {
   cursor: not-allowed;
 }
 
+/* ── UMAP Color Mode Selector ── */
+.umap-color-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1.5rem 0.25rem;
+  font-size: 0.88rem;
+  color: #495057;
+}
+
+.umap-color-mode span {
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.umap-color-mode-btn {
+  padding: 4px 14px;
+  border: 1px solid #ccd3da;
+  border-radius: 20px;
+  background: #f8f9fa;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.84rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.umap-color-mode-btn.active {
+  background: #0b4ca3;
+  color: white;
+  border-color: #0b4ca3;
+}
+
+.umap-color-mode-btn:hover:not(.active) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
 /* ── Plot Display ── */
 .plot-container {
   display: flex;

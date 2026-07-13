@@ -18,6 +18,12 @@ class Timepoint(str, Enum):
     H6 = "6h"
 
 
+class UmapHighlightBy(str, Enum):
+    NONE = "none"
+    CELLTYPE = "celltype"
+    CLUSTER = "cluster"
+
+
 class PlotRequest(BaseModel):
     """Request body for POST /api/plot."""
 
@@ -31,6 +37,17 @@ class PlotRequest(BaseModel):
         None,
         description="Mapping from GeneName (key) → display label 'GeneID (GeneName)'. "
                     "Keys must match values in `genes` / `gene`.",
+    )
+    umapHighlightBy: UmapHighlightBy = Field(
+        UmapHighlightBy.NONE,
+        description="UMAP highlight mode: 'none' (default), 'celltype', or 'cluster'. "
+                    "UMAP always colors by expression; this controls which cells are "
+                    "highlighted at full opacity.",
+    )
+    umapHighlightValues: list[str] = Field(
+        default=[],
+        description="Category values to highlight. Empty list = highlight all (no dimming). "
+                    "Values must match adata.obs['celltype'] or adata.obs['seurat_clusters'].",
     )
 
     @field_validator("genes")
@@ -56,3 +73,8 @@ class UmapResponse(BaseModel):
     format: str = "png"
     width: int
     height: int
+
+
+class UmapCategoriesResponse(BaseModel):
+    celltypes: list[str] = Field(..., description="Unique celltype values from adata.obs['celltype']")
+    clusters: list[str] = Field(..., description="Unique cluster values from adata.obs['seurat_clusters'], sorted numerically")
