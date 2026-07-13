@@ -429,8 +429,7 @@ function App() {
             setPlotError(null);
           }}
         >
-          🧬 Single-nucleus RNA-seq
-          <span className="mode-tab-badge">Heatmap</span>
+          Single-nucleus RNA-seq
         </button>
         <button
           className={`mode-tab ${activeMode === 'spatial' ? 'active' : ''}`}
@@ -441,8 +440,7 @@ function App() {
             setPlotError(null);
           }}
         >
-          🗺️ Spatial RNA-seq
-          <span className="mode-tab-badge">Dot Plot · UMAP</span>
+          Spatial RNA-seq
         </button>
       </div>
 
@@ -459,15 +457,9 @@ function App() {
           {sidebarVisible && (
             <div className="sidebar-content">
               <h2 style={{ textAlign: 'center' }}>
-                {activeMode === 'spatial' ? 'Spatial Explorer' : 'Filter Search'}
+                {activeMode === 'spatial' ? 'Filter Search' : 'Filter Search'}
               </h2>
 
-              {/* Spatial data source notice */}
-              {activeMode === 'spatial' && (
-                <div className="spatial-data-tag">
-                  📍 Data source: <strong>Spatial RNA-seq</strong>. Select genes to generate Dot Plot and UMAP.
-                </div>
-              )}
 
               {/* Gene List Dropdown */}
               <div className="search-section">
