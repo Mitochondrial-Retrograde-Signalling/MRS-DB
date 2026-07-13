@@ -244,6 +244,77 @@ button {
   border: 1px solid #a3c2f7;
 }
 
+/* ── Data Source Mode Switcher ── */
+.mode-switcher-bar {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0 1.5rem;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.mode-tab {
+  padding: 12px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #888;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s;
+  user-select: none;
+  font-family: inherit;
+}
+
+.mode-tab:hover:not(.active) {
+  color: #444;
+  background: #f8f9fa;
+}
+
+.mode-tab.active {
+  color: #1a3c7c;
+  border-bottom-color: #1a3c7c;
+}
+
+.mode-tab-badge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.mode-tab.active .mode-tab-badge {
+  background: #dce8fa;
+  color: #1a3c7c;
+}
+
+.mode-tab:not(.active) .mode-tab-badge {
+  background: #f0f0f0;
+  color: #aaa;
+}
+
+/* ── Spatial data source tag (sidebar) ── */
+.spatial-data-tag {
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  color: #e65100;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.spatial-data-tag strong {
+  font-weight: 700;
+}
+
 /* ── Plot Type Tab Bar ── */
 .plot-tab-bar {
   display: flex;
