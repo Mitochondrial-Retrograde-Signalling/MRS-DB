@@ -1163,7 +1163,7 @@ function App() {
             }}
           >
             If you use this tool in your research, please cite as: <br />
-            Single nuceli and spatial transcriptome reveals heterogeneous, polarized and spatial aspects of mitochondrial retrograde signalling in <em>Arabidopsis thaliana</em> (<u>link to be inserted when publication submitted/accepted</u>).
+            Single nuclei and spatial transcriptome reveals heterogeneous, polarized and spatial aspects of mitochondrial retrograde signalling in <em>Arabidopsis thaliana</em> (<u>link to be inserted when publication submitted/accepted</u>).
           </footer>
         </div>
 
