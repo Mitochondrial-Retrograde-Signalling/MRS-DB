@@ -25,6 +25,14 @@ NA_COLOR = "lightgray"
 DOT_SCALE = 8
 VIRIDIS_OPTION = "viridis"
 
+# ── Group display label remapping ────────────────────────────────────────────
+GROUP_LABEL_MAP: dict[str, str] = {
+    "Col0_AA":    "Col-0 AA",
+    "Col0_Mock":  "Col-0 Mock",
+    "nac17_AA":   "anac017 KO-1 AA",
+    "nac17_Mock": "anac017 KO-1 Mock",
+}
+
 
 # ── Dotplot ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +73,9 @@ def generate_dotplot(
     # Apply gene display labels if provided
     if gene_labels:
         df_long["gene"] = df_long["gene"].map(lambda g: gene_labels.get(g, g))
+
+    # Apply group display labels
+    df_long["group"] = df_long["group"].map(lambda g: GROUP_LABEL_MAP.get(g, g))
 
     plot_data = (
         df_long.groupby(["celltype", "group", "gene"])
@@ -269,7 +280,7 @@ def generate_umap(
                     linewidths=0, rasterized=True,
                 )
 
-        ax.set_title(group_name, fontsize=9)
+        ax.set_title(GROUP_LABEL_MAP.get(group_name, group_name), fontsize=9)
         ax.set_xlabel("UMAP1", fontsize=7)
         ax.set_ylabel("UMAP2", fontsize=7)
         ax.tick_params(labelsize=6)
