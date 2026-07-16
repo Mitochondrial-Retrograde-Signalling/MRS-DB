@@ -117,12 +117,36 @@ def generate_dotplot(
         for spine in ax.spines.values():
             spine.set_color("black")
             spine.set_visible(True)
+        # Add padding between top/bottom borders and first/last genes
+        ax.margins(y=0.1)
 
     path_coll = g.axes[0].collections[0] if g.axes[0].collections else None
     if path_coll:
         cbar_ax = g.figure.add_axes([1.02, 0.3, 0.02, 0.4])
         cbar = plt.colorbar(path_coll, cax=cbar_ax, label="Average\nexpression")
         cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+
+    # Add size legend for dot sizes (percent expressed)
+    size_pct_values = [25, 50, 75, 100]
+    size_handles = []
+    for pct in size_pct_values:
+        handle = plt.scatter(
+            [], [],
+            s=pct * (DOT_SCALE ** 2 / 100),
+            c='gray', edgecolors='none', alpha=0.7
+        )
+        size_handles.append(handle)
+
+    g.figure.legend(
+        size_handles,
+        [f"{p}%" for p in size_pct_values],
+        title="Percent\nexpressed",
+        loc='center left',
+        bbox_to_anchor=(1.02, 0.12),
+        frameon=True,
+        scatterpoints=1,
+        handletextpad=1.5
+    )
 
     g.set_axis_labels("", "")
     g.set_titles(col_template="{col_name}")
