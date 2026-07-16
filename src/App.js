@@ -24,8 +24,7 @@ function App() {
   const cellTypeOptions = [{ value: '*', label: 'Select All' }, ...cellTypes.map(ct => ({ value: ct, label: ct }))];
   const [showCitation, setShowCitation] = useState(false);
   const [geneSearchInput, setGeneSearchInput] = useState('');
-  const [activePlotTab, setActivePlotTab] = useState('table'); // 'table' | 'dotplot' | 'umap'
-  const [activeMode, setActiveMode] = useState('heatmap'); // 'heatmap' | 'spatial'
+  const [activePlotTab, setActivePlotTab] = useState('heatmap'); // 'heatmap' | 'dotplot' | 'umap'
   const [umapGeneIndex, setUmapGeneIndex] = useState(0);
   const [umapCarouselMode, setUmapCarouselMode] = useState('gene'); // 'gene' | 'timepoint'
   const [umapTimepointIndex, setUmapTimepointIndex] = useState(0);
@@ -412,35 +411,52 @@ function App() {
     '6h': '6-hour Timepoint',
   };
 
+  // Pre-compute UMAP timepoint-mode gene dropdown values (avoids IIFE in JSX)
+  const umapTpDetailsMap = geneDetailsByGeneList[selectedGeneList] || {};
+  const umapTpGeneOpts = selectedGenes.map(gid => {
+    const d = umapTpDetailsMap[gid];
+    return { value: gid, label: d?.name || gid };
+  });
+  const umapTpCurrentGid = selectedGenes[umapGeneIndex] ?? selectedGenes[0];
+  const umapTpCurrentLabel = (umapTpDetailsMap[umapTpCurrentGid]?.name || umapTpCurrentGid);
+
   return (
     <div className="app-wrapper">
       <header className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
         <img src="/zju-logo.png" alt="Zhejiang University Logo" style={{ height: '42px' }} />
       </header>
       
-      {/* ── Data Source Mode Switcher ── */}
+      {/* ── Plot Type Tab Bar ── */}
       <div className="mode-switcher-bar">
         <button
-          className={`mode-tab ${activeMode === 'heatmap' ? 'active' : ''}`}
+          className={`mode-tab ${activePlotTab === 'heatmap' ? 'active' : ''}`}
           onClick={() => {
-            setActiveMode('heatmap');
-            setActivePlotTab('table');
+            setActivePlotTab('heatmap');
             setPlotData(null);
             setPlotError(null);
           }}
         >
-          Single-nucleus RNA-seq
+          Heatmap
         </button>
         <button
-          className={`mode-tab ${activeMode === 'spatial' ? 'active' : ''}`}
+          className={`mode-tab ${activePlotTab === 'dotplot' ? 'active' : ''}`}
           onClick={() => {
-            setActiveMode('spatial');
             setActivePlotTab('dotplot');
             setPlotData(null);
             setPlotError(null);
           }}
         >
-          Spatial RNA-seq
+          Dot Plot
+        </button>
+        <button
+          className={`mode-tab ${activePlotTab === 'umap' ? 'active' : ''}`}
+          onClick={() => {
+            setActivePlotTab('umap');
+            setPlotData(null);
+            setPlotError(null);
+          }}
+        >
+          UMAP Feature Plot
         </button>
       </div>
 
@@ -456,9 +472,7 @@ function App() {
 
           {sidebarVisible && (
             <div className="sidebar-content">
-              <h2 style={{ textAlign: 'center' }}>
-                {activeMode === 'spatial' ? 'Filter Search' : 'Filter Search'}
-              </h2>
+              <h2 style={{ textAlign: 'center' }}>Filter Search</h2>
 
 
               {/* Gene List Dropdown */}
@@ -505,8 +519,8 @@ function App() {
                 />
               </div>
 
-              {/* Genotype Dropdown — heatmap mode only */}
-              {activeMode === 'heatmap' && (
+              {/* Genotype Dropdown — heatmap tab only */}
+              {activePlotTab === 'heatmap' && (
               <div className="search-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label>
@@ -592,7 +606,7 @@ function App() {
                   ))}
                 </div>
               </div>
-              )} {/* end activeMode === 'heatmap' — Genotype */}
+              )} {/* end activePlotTab === 'heatmap' — Genotype */}
 
               {/* Gene Multi-Select */}
               <div className="search-section">
@@ -720,8 +734,8 @@ function App() {
 
 
 
-              {/* Cell Type Filter — heatmap mode only */}
-              {activeMode === 'heatmap' && (
+              {/* Cell Type Filter — heatmap tab only */}
+              {activePlotTab === 'heatmap' && (
               <div className="search-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label>
@@ -807,7 +821,103 @@ function App() {
                   ))}
                 </div>
               </div>
-              )} {/* end activeMode === 'heatmap' — Cell Types */}
+              )} {/* end activePlotTab === 'heatmap' — Cell Types */}
+
+              {/* UMAP-specific controls — shown only in UMAP tab */}
+              {activePlotTab === 'umap' && (
+                <>
+                  <div className="search-section">
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Browse by</label>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                      {[
+                        { value: 'gene',      label: 'Genes'      },
+                        { value: 'timepoint', label: 'Timepoints' },
+                      ].map(({ value, label }) => (
+                        <button
+                          key={value}
+                          className={`umap-color-mode-btn${umapCarouselMode === value ? ' active' : ''}`}
+                          onClick={() => {
+                            if (value === 'timepoint') {
+                              const idx = allTimepoints.indexOf(selectedTimepoint);
+                              setUmapTimepointIndex(idx >= 0 ? idx : 0);
+                            }
+                            setUmapCarouselMode(value);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {umapCarouselMode === 'gene' && (
+                      <Select
+                        value={{ value: selectedTimepoint, label: selectedTimepoint }}
+                        options={allTimepoints.map(tp => ({ value: tp, label: tp }))}
+                        onChange={(opt) => { if (opt) setSelectedTimepoint(opt.value); }}
+                        isSearchable={false}
+                        styles={{
+                          container: base => ({ ...base, width: '100%' }),
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                        }}
+                      />
+                    )}
+                    {umapCarouselMode === 'timepoint' && (
+                      <Select
+                        value={{ value: umapTpCurrentGid, label: umapTpCurrentLabel }}
+                        options={umapTpGeneOpts}
+                        onChange={(opt) => {
+                          if (!opt) return;
+                          const idx = selectedGenes.indexOf(opt.value);
+                          if (idx >= 0) setUmapGeneIndex(idx);
+                        }}
+                        isSearchable
+                        styles={{
+                          container: base => ({ ...base, width: '100%' }),
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <div className="search-section">
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Highlight by</label>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                      {[
+                        { value: 'celltype', label: 'Cell Type' },
+                        { value: 'cluster',  label: 'Cluster'   },
+                      ].map(({ value, label }) => (
+                        <button
+                          key={value}
+                          className={`umap-color-mode-btn${umapHighlightBy === value ? ' active' : ''}`}
+                          onClick={() => {
+                            setUmapHighlightBy(value);
+                            setUmapHighlightValues([]);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <Select
+                      isMulti
+                      closeMenuOnSelect={false}
+                      options={
+                        (umapHighlightBy === 'celltype'
+                          ? umapCategories.celltypes
+                          : umapCategories.clusters
+                        ).map(v => ({ value: v, label: String(v) }))
+                      }
+                      value={umapHighlightValues.map(v => ({ value: v, label: String(v) }))}
+                      onChange={(opts) => setUmapHighlightValues((opts || []).map(o => o.value))}
+                      placeholder={umapHighlightBy === 'celltype' ? 'Select cell types…' : 'Select clusters…'}
+                      isSearchable
+                      styles={{
+                        container: base => ({ ...base, width: '100%' }),
+                        menu: base => ({ ...base, zIndex: 9999 }),
+                      }}
+                    />
+                  </div>
+                </>
+              )} {/* end activePlotTab === 'umap' — UMAP controls */}
             </div>
           )}
         </div>
@@ -818,7 +928,7 @@ function App() {
           <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
             {/* <h2>Main Content Area</h2> */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', marginRight: '1.5rem' }}>
-              {activeMode === 'heatmap' && (
+              {activePlotTab === 'heatmap' && (
               <button
                 onClick={() => setShowDescriptions(prev => !prev)}
                 style={{
@@ -837,9 +947,9 @@ function App() {
               >
                 {showDescriptions ? 'Hide Gene Descriptions' : 'View Gene Descriptions'}
               </button>
-              )} {/* end activeMode === 'heatmap' — descriptions */}
+              )} {/* end activePlotTab === 'heatmap' — descriptions */}
 
-              {activeMode === 'heatmap' && (
+              {activePlotTab === 'heatmap' && (
               <button
                 style={{
                   padding: '10px 16px',
@@ -858,28 +968,8 @@ function App() {
               >
                 Download
               </button>
-              )} {/* end activeMode === 'heatmap' — download */}
+              )} {/* end activePlotTab === 'heatmap' — download */}
             </div>
-
-            {/* ── Plot Type Tab Bar — spatial mode only ── */}
-            {activeMode === 'spatial' && hasSpatialSelections && (
-              <div className="plot-tab-bar">
-                <button
-                  className={`plot-tab-button ${activePlotTab === 'dotplot' ? 'active' : ''}`}
-                  onClick={() => setActivePlotTab('dotplot')}
-                  disabled={plotLoading}
-                >
-                  Dot Plot
-                </button>
-                <button
-                  className={`plot-tab-button ${activePlotTab === 'umap' ? 'active' : ''}`}
-                  onClick={() => setActivePlotTab('umap')}
-                  disabled={plotLoading}
-                >
-                  UMAP Feature Plot
-                </button>
-              </div>
-            )}
 
             {timepoints.length > 0 && activePlotTab !== 'umap' && (
               <div className="tab-bar">
@@ -899,7 +989,7 @@ function App() {
             )}
 
             {/* Placeholder message — shown when required selections are incomplete */}
-            {activeMode === 'heatmap' && !hasAllSelections && (
+            {activePlotTab === 'heatmap' && !hasAllSelections && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -922,7 +1012,7 @@ function App() {
                 </div>
               </div>
             )}
-            {activeMode === 'spatial' && !hasSpatialSelections && (
+            {(activePlotTab === 'dotplot' || activePlotTab === 'umap') && !hasSpatialSelections && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -947,7 +1037,7 @@ function App() {
             )}
 
             {/* Show table or plot based on active tab */}
-            {activeMode === 'heatmap' && hasAllSelections && (
+            {activePlotTab === 'heatmap' && hasAllSelections && (
               <GeneExpressionTable
                 selectedGenes={selectedGenes}
                 selectedGenotype={selectedGenotype}
@@ -958,105 +1048,8 @@ function App() {
               />
             )}
 
-            {activeMode === 'spatial' && hasSpatialSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
+            {hasSpatialSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
               <>
-                {activePlotTab === 'umap' && (
-                  <div className="umap-color-mode">
-                    {/* ── Carousel mode toggle ─────────────────────────────── */}
-                    <span style={{ marginRight: '2px', fontWeight: 500, color: '#555', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Browse by:</span>
-                    {[
-                      { value: 'gene',      label: 'Genes'      },
-                      { value: 'timepoint', label: 'Timepoints' },
-                    ].map(({ value, label }) => (
-                      <button
-                        key={value}
-                        className={`umap-color-mode-btn${umapCarouselMode === value ? ' active' : ''}`}
-                        onClick={() => {
-                          if (value === 'timepoint') {
-                            const idx = allTimepoints.indexOf(selectedTimepoint);
-                            setUmapTimepointIndex(idx >= 0 ? idx : 0);
-                          }
-                          setUmapCarouselMode(value);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    {/* ── Contextual dropdown ─────────────────────────────── */}
-                    {umapCarouselMode === 'gene' && (
-                      <Select
-                        value={{ value: selectedTimepoint, label: selectedTimepoint }}
-                        options={allTimepoints.map(tp => ({ value: tp, label: tp }))}
-                        onChange={(opt) => { if (opt) setSelectedTimepoint(opt.value); }}
-                        isSearchable={false}
-                        styles={{
-                          container: base => ({ ...base, minWidth: '80px', maxWidth: '110px' }),
-                          menu: base => ({ ...base, zIndex: 9999 }),
-                        }}
-                      />
-                    )}
-                    {umapCarouselMode === 'timepoint' && (() => {
-                      const detailsMap = geneDetailsByGeneList[selectedGeneList] || {};
-                      const geneOpts = selectedGenes.map(gid => {
-                        const d = detailsMap[gid];
-                        return { value: gid, label: d?.name || gid };
-                      });
-                      const currentGid = selectedGenes[umapGeneIndex] ?? selectedGenes[0];
-                      const currentLabel = (detailsMap[currentGid]?.name || currentGid);
-                      return (
-                        <Select
-                          value={{ value: currentGid, label: currentLabel }}
-                          options={geneOpts}
-                          onChange={(opt) => {
-                            if (!opt) return;
-                            const idx = selectedGenes.indexOf(opt.value);
-                            if (idx >= 0) setUmapGeneIndex(idx);
-                          }}
-                          isSearchable
-                          styles={{
-                            container: base => ({ ...base, minWidth: '140px', maxWidth: '240px' }),
-                            menu: base => ({ ...base, zIndex: 9999 }),
-                          }}
-                        />
-                      );
-                    })()}
-                    <span style={{ margin: '0 8px', color: '#ccc' }}>|</span>
-                    <span>Highlight by:</span>
-                    {[
-                      { value: 'celltype', label: 'Cell Type' },
-                      { value: 'cluster',  label: 'Cluster'   },
-                    ].map(({ value, label }) => (
-                      <button
-                        key={value}
-                        className={`umap-color-mode-btn${umapHighlightBy === value ? ' active' : ''}`}
-                        onClick={() => {
-                          setUmapHighlightBy(value);
-                          setUmapHighlightValues([]);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    <Select
-                      isMulti
-                      closeMenuOnSelect={false}
-                      options={
-                        (umapHighlightBy === 'celltype'
-                          ? umapCategories.celltypes
-                          : umapCategories.clusters
-                        ).map(v => ({ value: v, label: String(v) }))
-                      }
-                      value={umapHighlightValues.map(v => ({ value: v, label: String(v) }))}
-                      onChange={(opts) => setUmapHighlightValues((opts || []).map(o => o.value))}
-                      placeholder={umapHighlightBy === 'celltype' ? 'Select cell types…' : 'Select clusters…'}
-                      isSearchable
-                      styles={{
-                        container: base => ({ ...base, minWidth: '180px', maxWidth: '320px' }),
-                        menu: base => ({ ...base, zIndex: 9999 }),
-                      }}
-                    />
-                  </div>
-                )}
                 {(() => {
                   // Determine whether to show the carousel wrapper.
                   const showGeneCarousel = umapCarouselMode === 'gene' && selectedGenes.length > 1;
