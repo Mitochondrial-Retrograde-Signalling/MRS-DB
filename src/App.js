@@ -849,32 +849,42 @@ function App() {
                       ))}
                     </div>
                     {umapCarouselMode === 'gene' && (
-                      <Select
-                        value={{ value: selectedTimepoint, label: selectedTimepoint }}
-                        options={allTimepoints.map(tp => ({ value: tp, label: tp }))}
-                        onChange={(opt) => { if (opt) setSelectedTimepoint(opt.value); }}
-                        isSearchable={false}
-                        styles={{
-                          container: base => ({ ...base, width: '100%' }),
-                          menu: base => ({ ...base, zIndex: 9999 }),
-                        }}
-                      />
+                      <>
+                        <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: '#555' }}>
+                          At timepoint:
+                        </label>
+                        <Select
+                          value={{ value: selectedTimepoint, label: selectedTimepoint }}
+                          options={allTimepoints.map(tp => ({ value: tp, label: tp }))}
+                          onChange={(opt) => { if (opt) setSelectedTimepoint(opt.value); }}
+                          isSearchable={false}
+                          styles={{
+                            container: base => ({ ...base, width: '100%' }),
+                            menu: base => ({ ...base, zIndex: 9999 }),
+                          }}
+                        />
+                      </>
                     )}
                     {umapCarouselMode === 'timepoint' && (
-                      <Select
-                        value={{ value: umapTpCurrentGid, label: umapTpCurrentLabel }}
-                        options={umapTpGeneOpts}
-                        onChange={(opt) => {
-                          if (!opt) return;
-                          const idx = selectedGenes.indexOf(opt.value);
-                          if (idx >= 0) setUmapGeneIndex(idx);
-                        }}
-                        isSearchable
-                        styles={{
-                          container: base => ({ ...base, width: '100%' }),
-                          menu: base => ({ ...base, zIndex: 9999 }),
-                        }}
-                      />
+                      <>
+                        <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: '#555' }}>
+                          For gene:
+                        </label>
+                        <Select
+                          value={{ value: umapTpCurrentGid, label: umapTpCurrentLabel }}
+                          options={umapTpGeneOpts}
+                          onChange={(opt) => {
+                            if (!opt) return;
+                            const idx = selectedGenes.indexOf(opt.value);
+                            if (idx >= 0) setUmapGeneIndex(idx);
+                          }}
+                          isSearchable
+                          styles={{
+                            container: base => ({ ...base, width: '100%' }),
+                            menu: base => ({ ...base, zIndex: 9999 }),
+                          }}
+                        />
+                      </>
                     )}
                   </div>
 
