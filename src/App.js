@@ -1207,7 +1207,7 @@ function App() {
                       <img
                         src={`data:image/png;base64,${umapColoringImages.celltype}`}
                         alt="UMAP colored by cell type"
-                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                        style={{ maxWidth: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
                       />
                     ) : null}
                   </div>
@@ -1231,7 +1231,7 @@ function App() {
                       <img
                         src={`data:image/png;base64,${umapColoringImages.cluster}`}
                         alt="UMAP colored by cluster"
-                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                        style={{ maxWidth: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
                       />
                     ) : null}
                   </div>

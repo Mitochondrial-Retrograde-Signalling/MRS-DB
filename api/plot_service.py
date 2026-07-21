@@ -455,7 +455,7 @@ def generate_umap_coloring(
     cat_vals = all_cat_vals[group_mask]
 
     # ── Single plot ───────────────────────────────────────────────────────────
-    fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
     for cat in categories:
         mask = cat_vals == cat
@@ -508,12 +508,12 @@ def generate_umap_coloring(
             )
             for cat in categories
         ]
-        plt.tight_layout(rect=[0, 0, 0.72, 1.0])
+        plt.tight_layout()
         fig.legend(
             handles=handles,
             title=legend_title,
-            loc="center right",
-            bbox_to_anchor=(1.0, 0.5),
+            loc="center left",
+            bbox_to_anchor=(1.02, 0.5),
             fontsize=7,
             title_fontsize=8,
             frameon=True,
