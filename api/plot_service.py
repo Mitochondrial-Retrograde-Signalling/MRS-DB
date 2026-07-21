@@ -471,7 +471,7 @@ def generate_umap_coloring(
             label=cat,
         )
 
-    ax.set_title(GROUP_LABEL_MAP.get(first_group, first_group), fontsize=9)
+    # ax.set_title(GROUP_LABEL_MAP.get(first_group, first_group), fontsize=9)
     ax.set_xlabel("UMAP1", fontsize=7)
     ax.set_ylabel("UMAP2", fontsize=7)
     ax.tick_params(labelsize=6)

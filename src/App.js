@@ -1185,7 +1185,7 @@ function App() {
 
             {/* ── UMAP Cell Type & Cluster Reference Box ── */}
             {hasSpatialSelections && activePlotTab === 'umap' && (
-              <div style={{ padding: '0 1.5rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ padding: '0.5rem 1.5rem', margin: '0 2.7rem 0 2.7rem'}}>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   {/* Cell type panel */}
                   <div style={{
@@ -1196,7 +1196,7 @@ function App() {
                     background: '#fff',
                   }}>
                     <div style={{ fontWeight: 500, marginBottom: '0.5rem', fontSize: '0.9rem', color: '#333' }}>
-                      Cell Type
+                      Cell Type Reference Plot
                     </div>
                     {umapColoringLoading && !umapColoringImages.celltype ? (
                       <div className="plot-loading">
@@ -1220,7 +1220,7 @@ function App() {
                     background: '#fff',
                   }}>
                     <div style={{ fontWeight: 500, marginBottom: '0.5rem', fontSize: '0.9rem', color: '#333' }}>
-                      Cluster
+                      Cluster Reference Plot
                     </div>
                     {umapColoringLoading && !umapColoringImages.cluster ? (
                       <div className="plot-loading">
