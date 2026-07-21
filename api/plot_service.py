@@ -15,6 +15,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import colorsys as _colorsys
 from anndata import AnnData
 
 logger = logging.getLogger(__name__)
@@ -381,3 +382,160 @@ def get_umap_categories(adata: AnnData) -> dict:
             clusters = sorted([str(c) for c in raw_cats])
 
     return {"celltypes": celltypes, "clusters": clusters}
+
+
+def _ggplot_hue_palette(n: int) -> list[tuple[float, float, float]]:
+    """Replicate ggplot2 hue_pal()(n) — evenly-spaced hues, lightness=0.65, saturation=0.65."""
+    if n == 0:
+        return []
+    hues = [i / n for i in range(n)]
+    return [_colorsys.hls_to_rgb(h, 0.65, 0.65) for h in hues]
+
+
+def generate_umap_coloring(
+    adata: AnnData,
+    color_by: str,
+) -> dict:
+    """Generate a UMAP plot with cells colored by a categorical variable.
+
+    Used to render the side-by-side 'Cell Type & Cluster Reference' box in
+    the frontend.  Produces the same group-panel layout as ``generate_umap``
+    but colors cells by category label rather than expression level.
+
+    Args:
+        adata: AnnData object (already subset by timepoint).
+        color_by: ``"celltype"`` → color by ``adata.obs["celltype"]``;
+                  ``"cluster"``  → color by ``adata.obs["seurat_clusters"]``.
+
+    Returns:
+        Dict with keys: plotType, color_by, image (base64 PNG), format, width, height.
+
+    Raises:
+        ValueError: if ``color_by`` is invalid or the required obs column is absent.
+    """
+    if color_by == "celltype":
+        obs_key = "celltype"
+        legend_title = "Cell type"
+    elif color_by == "cluster":
+        obs_key = "seurat_clusters"
+        legend_title = "Cluster"
+    else:
+        raise ValueError(f"color_by must be 'celltype' or 'cluster', got '{color_by}'")
+
+    if obs_key not in adata.obs.columns:
+        raise ValueError(f"Column '{obs_key}' not found in adata.obs")
+
+    # ── Build category → color mapping ───────────────────────────────────────
+    obs_series = adata.obs[obs_key].astype(str)
+    if color_by == "cluster":
+        raw_cats = obs_series.unique().tolist()
+        try:
+            categories = [str(c) for c in sorted(raw_cats, key=int)]
+        except (ValueError, TypeError):
+            categories = sorted(raw_cats)
+    else:
+        if hasattr(adata.obs[obs_key], "cat"):
+            categories = [str(c) for c in adata.obs[obs_key].cat.categories.tolist()]
+        else:
+            categories = sorted(obs_series.unique().tolist())
+
+    n_cats = len(categories)
+    palette = _ggplot_hue_palette(n_cats)
+    cat_to_color: dict[str, tuple] = {cat: palette[i] for i, cat in enumerate(categories)}
+
+    # ── Use only the first group ──────────────────────────────────────────────
+    all_umap = adata.obsm["X_umap"]
+    all_groups = adata.obs["group"].values
+    all_cat_vals = obs_series.values  # string array
+
+    unique_groups = sorted(adata.obs["group"].unique())
+    first_group = unique_groups[0]
+    group_mask = all_groups == first_group
+    coords = all_umap[group_mask]
+    cat_vals = all_cat_vals[group_mask]
+
+    # ── Single plot ───────────────────────────────────────────────────────────
+    fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+
+    for cat in categories:
+        mask = cat_vals == cat
+        if not mask.any():
+            continue
+        ax.scatter(
+            coords[mask, 0],
+            coords[mask, 1],
+            s=2,
+            c=[cat_to_color[cat]],
+            linewidths=0,
+            rasterized=True,
+            label=cat,
+        )
+
+    ax.set_title(GROUP_LABEL_MAP.get(first_group, first_group), fontsize=9)
+    ax.set_xlabel("UMAP1", fontsize=7)
+    ax.set_ylabel("UMAP2", fontsize=7)
+    ax.tick_params(labelsize=6)
+
+    if color_by == "cluster":
+        # Overlay cluster number labels at centroids (like legend_loc="on data" in scanpy)
+        import matplotlib.patheffects as _pe
+        for cat in categories:
+            mask = cat_vals == cat
+            if not mask.any():
+                continue
+            cx = float(coords[mask, 0].mean())
+            cy = float(coords[mask, 1].mean())
+            ax.text(
+                cx, cy, cat,
+                fontsize=8,
+                fontweight="bold",
+                ha="center",
+                va="center",
+                color="black",
+                path_effects=[_pe.withStroke(linewidth=2, foreground="white")],
+            )
+        plt.tight_layout()
+    else:
+        # celltype: legend to the right of the plot
+        handles = [
+            plt.Line2D(
+                [0], [0],
+                marker="o",
+                color="w",
+                markerfacecolor=cat_to_color[cat],
+                markersize=6,
+                label=cat,
+            )
+            for cat in categories
+        ]
+        plt.tight_layout(rect=[0, 0, 0.72, 1.0])
+        fig.legend(
+            handles=handles,
+            title=legend_title,
+            loc="center right",
+            bbox_to_anchor=(1.0, 0.5),
+            fontsize=7,
+            title_fontsize=8,
+            frameon=True,
+            markerscale=1.5,
+        )
+
+    _DPI = 96
+    w_in, h_in = fig.get_size_inches()
+    width = int(round(w_in * _DPI))
+    height = int(round(h_in * _DPI))
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=_DPI, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    b64 = base64.b64encode(buf.read()).decode("utf-8")
+
+    return {
+        "plotType": "umap_coloring",
+        "color_by": color_by,
+        "image": b64,
+        "format": "png",
+        "width": width,
+        "height": height,
+    }

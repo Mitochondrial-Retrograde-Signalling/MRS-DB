@@ -52,6 +52,9 @@ function App() {
   const umapCacheRef = useRef({});
   // Tracks cache keys currently being background-fetched (to avoid duplicate requests)
   const umapPrefetchingRef = useRef(new Set());
+  const umapColoringCacheRef = useRef({}); // keyed by "${timepoint}:celltype" | "${timepoint}:cluster"
+  const [umapColoringImages, setUmapColoringImages] = useState({ celltype: null, cluster: null });
+  const [umapColoringLoading, setUmapColoringLoading] = useState(false);
 
   useEffect(() => {
     const files = ['1h.json', '3h.json', '6h.json'];
@@ -404,6 +407,42 @@ function App() {
       .then(data => { if (data) setUmapCategories(data); })
       .catch(() => { /* silently ignore — multi-select will be empty */ });
   }, [activePlotTab, selectedTimepoint]);
+
+  // Fetch UMAP cell-type and cluster coloring images for the reference box.
+  // These are independent of gene selection — only the timepoint matters.
+  useEffect(() => {
+    if (activePlotTab !== 'umap' || !hasSpatialSelections) return;
+
+    const celltypeKey = `${selectedTimepoint}:celltype`;
+    const clusterKey  = `${selectedTimepoint}:cluster`;
+
+    // Both already cached — serve immediately without spinner
+    if (umapColoringCacheRef.current[celltypeKey] && umapColoringCacheRef.current[clusterKey]) {
+      setUmapColoringImages({
+        celltype: umapColoringCacheRef.current[celltypeKey],
+        cluster:  umapColoringCacheRef.current[clusterKey],
+      });
+      return;
+    }
+
+    setUmapColoringLoading(true);
+
+    Promise.all([
+      fetch(`${API_BASE}/api/umap-coloring?timepoint=${selectedTimepoint}&color_by=celltype`)
+        .then(res => res.ok ? res.json() : null),
+      fetch(`${API_BASE}/api/umap-coloring?timepoint=${selectedTimepoint}&color_by=cluster`)
+        .then(res => res.ok ? res.json() : null),
+    ])
+      .then(([celltypeData, clusterData]) => {
+        const celltypeImg = celltypeData?.image ?? null;
+        const clusterImg  = clusterData?.image  ?? null;
+        if (celltypeImg) umapColoringCacheRef.current[celltypeKey] = celltypeImg;
+        if (clusterImg)  umapColoringCacheRef.current[clusterKey]  = clusterImg;
+        setUmapColoringImages({ celltype: celltypeImg, cluster: clusterImg });
+      })
+      .catch(() => { /* silently fail — box simply stays blank */ })
+      .finally(() => setUmapColoringLoading(false));
+  }, [activePlotTab, hasSpatialSelections, selectedTimepoint]);
 
   const timepointLabels = {
     '1h': '1-hour Timepoint',
@@ -1142,6 +1181,62 @@ function App() {
                   );
                 })()}
               </>
+            )}
+
+            {/* ── UMAP Cell Type & Cluster Reference Box ── */}
+            {hasSpatialSelections && activePlotTab === 'umap' && (
+              <div style={{ padding: '0 1.5rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {/* Cell type panel */}
+                  <div style={{
+                    flex: 1,
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    background: '#fff',
+                  }}>
+                    <div style={{ fontWeight: 500, marginBottom: '0.5rem', fontSize: '0.9rem', color: '#333' }}>
+                      Cell Type
+                    </div>
+                    {umapColoringLoading && !umapColoringImages.celltype ? (
+                      <div className="plot-loading">
+                        <div className="spinner" />
+                        <p>Loading...</p>
+                      </div>
+                    ) : umapColoringImages.celltype ? (
+                      <img
+                        src={`data:image/png;base64,${umapColoringImages.celltype}`}
+                        alt="UMAP colored by cell type"
+                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                      />
+                    ) : null}
+                  </div>
+                  {/* Cluster panel */}
+                  <div style={{
+                    flex: 1,
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    background: '#fff',
+                  }}>
+                    <div style={{ fontWeight: 500, marginBottom: '0.5rem', fontSize: '0.9rem', color: '#333' }}>
+                      Cluster
+                    </div>
+                    {umapColoringLoading && !umapColoringImages.cluster ? (
+                      <div className="plot-loading">
+                        <div className="spinner" />
+                        <p>Loading...</p>
+                      </div>
+                    ) : umapColoringImages.cluster ? (
+                      <img
+                        src={`data:image/png;base64,${umapColoringImages.cluster}`}
+                        alt="UMAP colored by cluster"
+                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

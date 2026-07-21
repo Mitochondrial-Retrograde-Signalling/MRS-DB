@@ -20,10 +20,11 @@ from api.models import (
     PlotRequest,
     PlotType,
     UmapCategoriesResponse,
+    UmapColoringResponse,
     UmapHighlightBy,
     UmapResponse,
 )
-from api.plot_service import generate_dotplot, generate_umap, get_umap_categories
+from api.plot_service import generate_dotplot, generate_umap, generate_umap_coloring, get_umap_categories
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,6 +48,11 @@ _load_lock = threading.Lock()
 # Since h5ad data never changes, identical inputs always produce identical output.
 _plot_result_cache: dict[str, dict] = {}
 _PLOT_CACHE_MAX = 64  # evict oldest entry (FIFO) when limit is reached
+
+# ── UMAP coloring cache ──────────────────────────────────────────────────────
+# Keyed by "{timepoint}:{color_by}" e.g. "3h:celltype".
+# These never change (no gene/highlight dependency), so no eviction needed.
+_umap_coloring_cache: dict[str, dict] = {}
 
 
 def _make_cache_key(req: PlotRequest) -> str:
@@ -251,6 +257,48 @@ async def umap_categories_endpoint(timepoint: str):
         )
     adata = _get_adata(timepoint)
     return get_umap_categories(adata)
+
+
+@app.get("/api/umap-coloring", response_model=UmapColoringResponse)
+async def umap_coloring_endpoint(timepoint: str, color_by: str):
+    """Return a UMAP plot with cells colored by celltype or cluster.
+
+    Used to render the 'Cell Type & Cluster Reference' box in the frontend.
+
+    Query params:
+        timepoint: one of "1h", "3h", "6h"
+        color_by:  one of "celltype", "cluster"
+
+    Returns:
+        UmapColoringResponse with a base64-encoded PNG.
+    """
+    if timepoint not in TIMEPOINT_FILE_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid timepoint '{timepoint}'. Must be one of: {list(TIMEPOINT_FILE_MAP.keys())}",
+        )
+    if color_by not in ("celltype", "cluster"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid color_by '{color_by}'. Must be 'celltype' or 'cluster'.",
+        )
+
+    cache_key = f"{timepoint}:{color_by}"
+    if cache_key in _umap_coloring_cache:
+        logger.info("Coloring cache hit: %s", cache_key)
+        return JSONResponse(content=_umap_coloring_cache[cache_key])
+
+    adata = _get_adata(timepoint)
+    try:
+        result = generate_umap_coloring(adata=adata, color_by=color_by)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Unexpected error generating umap_coloring plot")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
+    _umap_coloring_cache[cache_key] = result
+    return JSONResponse(content=result)
 
 
 @app.get("/api/health")

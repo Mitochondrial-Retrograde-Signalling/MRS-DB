@@ -78,3 +78,12 @@ class UmapResponse(BaseModel):
 class UmapCategoriesResponse(BaseModel):
     celltypes: list[str] = Field(..., description="Unique celltype values from adata.obs['celltype']")
     clusters: list[str] = Field(..., description="Unique cluster values from adata.obs['seurat_clusters'], sorted numerically")
+
+
+class UmapColoringResponse(BaseModel):
+    plotType: str = "umap_coloring"
+    color_by: str = Field(..., description="The categorical column used for coloring: 'celltype' or 'cluster'")
+    image: str = Field(..., description="Base64-encoded PNG image")
+    format: str = "png"
+    width: int
+    height: int
