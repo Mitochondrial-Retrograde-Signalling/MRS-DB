@@ -514,8 +514,8 @@ def generate_umap_coloring(
             title=legend_title,
             loc="center left",
             bbox_to_anchor=(1.02, 0.5),
-            fontsize=7,
-            title_fontsize=8,
+            fontsize=9,
+            title_fontsize=11,
             frameon=True,
             markerscale=1.5,
         )

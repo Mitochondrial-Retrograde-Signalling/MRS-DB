@@ -396,10 +396,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  padding: 0.5rem 1.5rem;
+  min-height: 380px;
+  padding: 0 0;
   margin: 0 0;
-  background: #fafafa;
+  /* background: #fafafa; */
+  background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   overflow: auto;
