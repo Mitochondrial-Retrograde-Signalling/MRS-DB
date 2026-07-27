@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 NA_CUTOFF = 1e-09
 NA_COLOR = "lightgray"
 DOT_SCALE = 8
-VIRIDIS_OPTION = "viridis"
+VIRIDIS_OPTION = "Purples"
 
 # ── Group display label remapping ────────────────────────────────────────────
 GROUP_LABEL_MAP: dict[str, str] = {
