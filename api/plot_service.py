@@ -411,10 +411,10 @@ def generate_umap(
         cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
     fig.text(
-        0.5, 0.005,
+        0, 0.005,
         GENOTYPE_TREATMENT_FOOTNOTE,
-        ha="center", va="bottom",
-        fontsize=8, color="#333333",
+        ha="left", va="top",
+        fontsize=9, style="italic", color="#444444",
     )
 
     _DPI = 96
