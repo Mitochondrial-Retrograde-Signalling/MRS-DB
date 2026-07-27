@@ -1164,14 +1164,25 @@ function App() {
                     ? `Gene ${geneNavIndex + 1} of ${selectedGenes.length}`
                     : allTimepoints[tpNavIndex];
 
+                  const navBtnStyle = (disabled) => ({
+                    background: disabled ? '#f0f4f8' : '#dbeafe',
+                    border: `1.5px solid ${disabled ? '#ccd' : '#1a5276'}`,
+                    borderRadius: '6px',
+                    width: '44px',
+                    height: '44px',
+                    cursor: disabled ? 'default' : 'pointer',
+                    color: '#0e3460',
+                    opacity: disabled ? 0.35 : 1,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  });
+
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem' }}>
-                      <button
-                        onClick={handlePrev}
-                        disabled={prevDisabled}
-                        style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: prevDisabled ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: prevDisabled ? 0.3 : 1, flexShrink: 0 }}
-                      >
-                        ←
+                      <button onClick={handlePrev} disabled={prevDisabled} style={navBtnStyle(prevDisabled)}>
+                        <FiChevronLeft size={22} />
                       </button>
                       <div style={{ flex: 1, position: 'relative' }}>
                         <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(255,255,255,0.85)', padding: '2px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, color: '#1a5276', pointerEvents: 'none', whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
@@ -1183,12 +1194,8 @@ function App() {
                           error={plotError}
                         />
                       </div>
-                      <button
-                        onClick={handleNext}
-                        disabled={nextDisabled}
-                        style={{ background: 'white', border: '1px solid #ccd', borderRadius: '6px', width: '36px', height: '36px', cursor: nextDisabled ? 'default' : 'pointer', fontSize: '1.2rem', color: '#1a5276', opacity: nextDisabled ? 0.3 : 1, flexShrink: 0 }}
-                      >
-                        →
+                      <button onClick={handleNext} disabled={nextDisabled} style={navBtnStyle(nextDisabled)}>
+                        <FiChevronRight size={22} />
                       </button>
                     </div>
                   );
