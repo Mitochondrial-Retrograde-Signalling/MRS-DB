@@ -475,7 +475,7 @@ function App() {
             setPlotError(null);
           }}
         >
-          Heatmap
+          DEG Heatmap
         </button>
         <button
           className={`mode-tab ${activePlotTab === 'dotplot' ? 'active' : ''}`}
