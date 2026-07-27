@@ -90,13 +90,20 @@ def generate_dotplot(
     groups = sorted(plot_data["group"].unique())
     ncol = min(4, len(groups))
 
+    # Scale height with number of genes so dots don't get cramped;
+    # keep facet width fixed by adjusting aspect = fixed_width / facet_height.
+    n_genes = len(genes)
+    facet_width = 4.0  # inches — constant regardless of gene count
+    facet_height = 2.5 + n_genes * 0.5  # 3.0 for 1 gene, 3.5 for 2, +0.5 per gene
+    facet_aspect = facet_width / facet_height
+
     g = sns.FacetGrid(
         plot_data,
         col="group",
         col_wrap=ncol,
         margin_titles=True,
-        height=4,
-        aspect=1,
+        height=facet_height,
+        aspect=facet_aspect,
     )
 
     def scatter_mapping(data, **kwargs):
@@ -118,8 +125,10 @@ def generate_dotplot(
         for spine in ax.spines.values():
             spine.set_color("black")
             spine.set_visible(True)
-        # Add padding between top/bottom borders and first/last genes
-        ax.margins(y=0.1)
+        # Fixed 0.5-slot padding top and bottom regardless of gene count
+        ax.margins(y=0)
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(ymin - 0.25, ymax + 0.25)
 
     path_coll = g.axes[0].collections[0] if g.axes[0].collections else None
     if path_coll:
