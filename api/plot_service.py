@@ -34,6 +34,23 @@ GROUP_LABEL_MAP: dict[str, str] = {
     "nac17_Mock": "anac017 KO-1 Mock",
 }
 
+# ── Cell type abbreviations for dot plot x-axis ───────────────────────────────
+CELLTYPE_ABBREV: dict[str, str] = {
+    "Bundle sheath":                "BS",
+    "Companion cell":               "CC",
+    "Epidermis":                    "EP",
+    "G2/M phase":                   "G2M",
+    "Guard cell&Myrosin idioblasts": "LGC&MI",
+    "Guard cell":                   "LGC",
+    "Mesophyll":                    "ME",
+    "Phloem parenchyma":            "PP",
+    "Phloem parenchyma and Xylem":  "PPX",
+    "S phase":                      "SP",
+    "Trichome":                     "TRI",
+    "Unknown":                      "UK",
+    "Xylem":                        "XYL",
+}
+
 
 # ── Dotplot ──────────────────────────────────────────────────────────────────
 
@@ -119,7 +136,9 @@ def generate_dotplot(
     g.map_dataframe(scatter_mapping)
 
     for ax in g.axes.flat:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="center")
+        labels = [t.get_text() for t in ax.get_xticklabels()]
+        abbrev_labels = [CELLTYPE_ABBREV.get(lbl, lbl) for lbl in labels]
+        ax.set_xticklabels(abbrev_labels, rotation=90, ha="center")
         ax.grid(False)
         ax.set_facecolor("white")
         for spine in ax.spines.values():
@@ -162,7 +181,36 @@ def generate_dotplot(
     g.set_titles(col_template="{col_name}")
 
     fig = g.figure
-    fig.tight_layout()
+
+    # ── Footnote: abbreviation key for x-axis labels ──
+    celltypes_present = sorted(plot_data["celltype"].unique())
+    footnote_parts = [
+        f"{CELLTYPE_ABBREV[ct]}: {ct}"
+        for ct in celltypes_present
+        if ct in CELLTYPE_ABBREV
+    ]
+    footnote_text = ""
+    if footnote_parts:
+        n_per_line = 5
+        lines = [
+            "; ".join(footnote_parts[i : i + n_per_line])
+            for i in range(0, len(footnote_parts), n_per_line)
+        ]
+        footnote_text = "\n".join(lines)
+
+    # Reserve bottom margin inside the figure so the footnote doesn't push
+    # bbox_inches="tight" to expand the output height.
+    n_footnote_lines = footnote_text.count("\n") + 1 if footnote_text else 0
+    bottom_margin = 0.03 + n_footnote_lines * 0.04  # ~0.04 per line at fig scale
+    fig.tight_layout(rect=[0, bottom_margin, 1, 1])
+
+    if footnote_text:
+        fig.text(
+            0.0, bottom_margin - 0.01,
+            footnote_text,
+            ha="left", va="top",
+            fontsize=9, style="italic", color="#444444",
+        )
 
     # ── Render to base64 PNG ──
     # dpi=96 matches typical screen resolution; frontend uses CSS max-width so
