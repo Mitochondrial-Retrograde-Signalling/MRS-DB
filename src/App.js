@@ -1100,6 +1100,17 @@ function App() {
             {hasSpatialSelections && (activePlotTab === 'dotplot' || activePlotTab === 'umap') && (
               <>
                 {(() => {
+                  // Dot Plot: no carousel — timepoints are changed via the timepoint buttons above.
+                  if (activePlotTab === 'dotplot') {
+                    return (
+                      <PlotDisplay
+                        plotData={plotData}
+                        loading={plotLoading}
+                        error={plotError}
+                      />
+                    );
+                  }
+
                   // Determine whether to show the carousel wrapper.
                   const showGeneCarousel = umapCarouselMode === 'gene' && selectedGenes.length > 1;
                   const showTimepointCarousel = umapCarouselMode === 'timepoint' && allTimepoints.length > 1;
