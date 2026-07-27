@@ -1103,11 +1103,13 @@ function App() {
                   // Dot Plot: no carousel — timepoints are changed via the timepoint buttons above.
                   if (activePlotTab === 'dotplot') {
                     return (
-                      <PlotDisplay
-                        plotData={plotData}
-                        loading={plotLoading}
-                        error={plotError}
-                      />
+                      <div style={{ padding: '0 2rem 2rem 2rem' }}>
+                        <PlotDisplay
+                          plotData={plotData}
+                          loading={plotLoading}
+                          error={plotError}
+                        />
+                      </div>
                     );
                   }
 
