@@ -1205,7 +1205,7 @@ function App() {
 
             {/* ── UMAP Cell Type & Cluster Reference Box ── */}
             {hasSpatialSelections && activePlotTab === 'umap' && (
-              <div style={{ padding: '0.75rem', margin: '0 2.7rem 0 2.7rem', border: '1px solid #e9ecef', borderRadius: '8px', background: '#ffffff' }}>
+              <div style={{ padding: '0.75rem', margin: '0 calc(1.5rem + 40px) 0 calc(1.5rem + 40px)' }}>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   {/* Cell type panel */}
                   <div style={{
