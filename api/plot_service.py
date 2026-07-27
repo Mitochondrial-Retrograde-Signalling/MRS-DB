@@ -150,12 +150,16 @@ def generate_dotplot(
         ax.set_ylim(ymin - 0.25, ymax + 0.25)
 
     path_coll = g.axes[0].collections[0] if g.axes[0].collections else None
+    cbar_ax = None
     if path_coll:
-        cbar_ax = g.figure.add_axes([1.02, 0.3, 0.02, 0.4])
+        cbar_ax = g.figure.add_axes([1.02, 0.52, 0.02, 0.35])
         cbar = plt.colorbar(path_coll, cax=cbar_ax, label="Average\nexpression")
         cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
-    # Add size legend for dot sizes (percent expressed)
+    # Add size legend for dot sizes (percent expressed).
+    # When a colorbar exists, anchor the size legend just below it using the
+    # colorbar's own axes transform so the gap is always proportional and
+    # never overlaps regardless of figure height.
     size_pct_values = [25, 50, 75, 100]
     size_handles = []
     for pct in size_pct_values:
@@ -166,15 +170,27 @@ def generate_dotplot(
         )
         size_handles.append(handle)
 
+    if cbar_ax is not None:
+        size_legend_kwargs = dict(
+            loc='upper left',
+            bbox_to_anchor=(0.0, -0.08),   # 8 % of colorbar height below its bottom
+            bbox_transform=cbar_ax.transAxes,
+        )
+    else:
+        size_legend_kwargs = dict(
+            loc='lower left',
+            bbox_to_anchor=(1.02, 0.0),
+        )
+
     g.figure.legend(
         size_handles,
         [f"{p}%" for p in size_pct_values],
         title="Percent\nexpressed",
-        loc='center left',
-        bbox_to_anchor=(1.02, 0.12),
-        frameon=True,
+        frameon=False,
         scatterpoints=1,
-        handletextpad=1.5
+        handletextpad=1.5,
+        alignment='left',
+        **size_legend_kwargs,
     )
 
     g.set_axis_labels("", "")
