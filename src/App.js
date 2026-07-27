@@ -1108,7 +1108,6 @@ function App() {
                           plotData={plotData}
                           loading={plotLoading}
                           error={plotError}
-                          footnote={<><strong>Genotypes:</strong> Col-0 (wild type); <em>anac017</em> KO-1 (knockout). <strong>Treatments:</strong> AA (antimycin A-treated); Mock (mock control).</>}
                         />
                       </div>
                     );
@@ -1127,15 +1126,12 @@ function App() {
                   const tpNavIndex = umapTimepointIndex;
                   const tpNavMax = allTimepoints.length - 1;
 
-                  const umapFootnote = <><strong>Genotypes:</strong> Col-0 (wild type); <em>anac017</em> KO-1 (knockout). <strong>Treatments:</strong> AA (antimycin A-treated); Mock (mock control).</>;
-
                   if (!showCarousel) {
                     return (
                       <PlotDisplay
                         plotData={plotData}
                         loading={plotLoading}
                         error={plotError}
-                        footnote={umapFootnote}
                       />
                     );
                   }
@@ -1185,7 +1181,6 @@ function App() {
                           plotData={plotData}
                           loading={plotLoading}
                           error={plotError}
-                          footnote={umapFootnote}
                         />
                       </div>
                       <button

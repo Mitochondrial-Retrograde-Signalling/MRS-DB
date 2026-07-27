@@ -51,6 +51,11 @@ CELLTYPE_ABBREV: dict[str, str] = {
     "Xylem":                        "XYL",
 }
 
+GENOTYPE_TREATMENT_FOOTNOTE = (
+    "Genotypes: Col-0 (wild type); anac017 KO-1 (knockout).  "
+    "Treatments: AA (antimycin A-treated); Mock (mock control)."
+)
+
 
 # ── Dotplot ──────────────────────────────────────────────────────────────────
 
@@ -207,7 +212,7 @@ def generate_dotplot(
     ]
     footnote_text = ""
     if footnote_parts:
-        n_per_line = 5
+        n_per_line = 6
         lines = [
             "; ".join(footnote_parts[i : i + n_per_line])
             for i in range(0, len(footnote_parts), n_per_line)
@@ -217,16 +222,18 @@ def generate_dotplot(
     # Reserve bottom margin inside the figure so the footnote doesn't push
     # bbox_inches="tight" to expand the output height.
     n_footnote_lines = footnote_text.count("\n") + 1 if footnote_text else 0
+    n_footnote_lines += 1  # genotype/treatment line
     bottom_margin = 0.03 + n_footnote_lines * 0.04  # ~0.04 per line at fig scale
     fig.tight_layout(rect=[0, bottom_margin, 1, 1])
 
     if footnote_text:
         fig.text(
             0.0, bottom_margin - 0.01,
-            footnote_text,
+            "\n" + footnote_text + "\n" + GENOTYPE_TREATMENT_FOOTNOTE,
             ha="left", va="top",
             fontsize=9, style="italic", color="#444444",
         )
+
 
     # ── Render to base64 PNG ──
     # dpi=96 matches typical screen resolution; frontend uses CSS max-width so
@@ -397,11 +404,18 @@ def generate_umap(
     fig.suptitle(title, fontsize=11, fontweight="bold")
 
     # Colorbar — reserve 12% on the right so subplots never overlap it
-    plt.tight_layout(rect=[0, 0, 0.88, 1.0])
+    plt.tight_layout(rect=[0, 0.05, 0.88, 1.0])
     if scatter_ref is not None:
         cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
         cbar = fig.colorbar(scatter_ref, cax=cbar_ax, label="Expression level")
         cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+
+    fig.text(
+        0.5, 0.005,
+        GENOTYPE_TREATMENT_FOOTNOTE,
+        ha="center", va="bottom",
+        fontsize=8, color="#333333",
+    )
 
     _DPI = 96
     w_in, h_in = fig.get_size_inches()
