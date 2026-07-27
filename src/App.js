@@ -1108,6 +1108,7 @@ function App() {
                           plotData={plotData}
                           loading={plotLoading}
                           error={plotError}
+                          footnote={<><strong>Genotypes:</strong> Col-0 (wild type); <em>anac017</em> KO-1 (knockout). <strong>Treatments:</strong> AA (antimycin A-treated); Mock (mock control).</>}
                         />
                       </div>
                     );
@@ -1126,12 +1127,15 @@ function App() {
                   const tpNavIndex = umapTimepointIndex;
                   const tpNavMax = allTimepoints.length - 1;
 
+                  const umapFootnote = <><strong>Genotypes:</strong> Col-0 (wild type); <em>anac017</em> KO-1 (knockout). <strong>Treatments:</strong> AA (antimycin A-treated); Mock (mock control).</>;
+
                   if (!showCarousel) {
                     return (
                       <PlotDisplay
                         plotData={plotData}
                         loading={plotLoading}
                         error={plotError}
+                        footnote={umapFootnote}
                       />
                     );
                   }
@@ -1181,6 +1185,7 @@ function App() {
                           plotData={plotData}
                           loading={plotLoading}
                           error={plotError}
+                          footnote={umapFootnote}
                         />
                       </div>
                       <button
@@ -1198,7 +1203,7 @@ function App() {
 
             {/* ── UMAP Cell Type & Cluster Reference Box ── */}
             {hasSpatialSelections && activePlotTab === 'umap' && (
-              <div style={{ padding: '0.5rem 1.5rem', margin: '0 2.7rem 0 2.7rem'}}>
+              <div style={{ padding: '0.75rem', margin: '0 2.7rem 0 2.7rem', border: '1px solid #e9ecef', borderRadius: '8px', background: '#ffffff' }}>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   {/* Cell type panel */}
                   <div style={{

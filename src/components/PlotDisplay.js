@@ -1,7 +1,7 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 
-function PlotDisplay({ plotData, loading, error }) {
+function PlotDisplay({ plotData, loading, error, footnote }) {
   // No stale data + loading → full spinner
   if (loading && !plotData) {
     return (
@@ -77,7 +77,14 @@ function PlotDisplay({ plotData, loading, error }) {
           </div>
         </div>
       )}
-      {plotContent}
+      <div style={{ width: '100%' }}>
+        {plotContent}
+        {footnote && (
+          <p style={{ fontSize: '0.78rem', color: '#555', margin: '0.75rem 0 0 0', lineHeight: '1.5' }}>
+            {footnote}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
